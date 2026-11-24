@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nacita Material Control – Viewer</title>
+<style>
+:root{
+  --bg:#f4f6f9;--panel:#ffffff;--ink:#1b2430;--muted:#5d6b7c;--line:#dde3ea;
+  --brand:#0b5cad;--brand-ink:#ffffff;--soft:#eaf2fb;
+  --ok:#1f8a4c;--ok-bg:#e3f4ea;--warn:#b26b00;--warn-bg:#fff2d9;
+  --bad:#c0392b;--bad-bg:#fbe5e2;--info:#5b48c2;--info-bg:#ece9fb;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141b;--panel:#171e27;--ink:#e6ebf1;--muted:#93a1b2;--line:#2a3441;
+  --brand:#4b9be8;--brand-ink:#0b1420;--soft:#1b2a3b;
+  --ok:#4cc985;--ok-bg:#163126;--warn:#f0b54a;--warn-bg:#3a2c12;
+  --bad:#f07468;--bad-bg:#3b1d1a;--info:#a698f5;--info-bg:#25213f;--shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0f141b;--panel:#171e27;--ink:#e6ebf1;--muted:#93a1b2;--line:#2a3441;
+  --brand:#4b9be8;--brand-ink:#0b1420;--soft:#1b2a3b;
+  --ok:#4cc985;--ok-bg:#163126;--warn:#f0b54a;--warn-bg:#3a2c12;
+  --bad:#f07468;--bad-bg:#3b1d1a;--info:#a698f5;--info-bg:#25213f;--shadow:none;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{position:sticky;top:0;z-index:6;height:60px;background:var(--panel);border-bottom:1px solid var(--line);padding:0 16px;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;margin:0;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .sub{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .ttl{min-width:0}
+header .sp{flex:1}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--brand);color:var(--brand-ink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+.iconbtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.iconbtn:hover{border-color:var(--brand)}
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:calc(100vh - 60px)}
+body.collapsed .app{grid-template-columns:64px minmax(0,1fr)}
+#nav{position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;background:var(--panel);border-right:1px solid var(--line);padding:10px 10px 16px;display:flex;flex-direction:column;gap:2px}
+#nav .grp{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 10px 5px;font-weight:650;white-space:nowrap}
+#nav .grp:first-child{padding-top:4px}
+#nav button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--ink);padding:8px 10px;border-radius:8px;cursor:pointer;font:inherit;font-size:13.5px;text-align:left;white-space:nowrap;position:relative}
+#nav button svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--muted)}
+#nav button:hover{background:var(--soft)}
+#nav button.active{background:var(--soft);color:var(--brand);font-weight:600}
+#nav button.active svg{color:var(--brand)}
+#nav button.active::before{content:"";position:absolute;left:-10px;top:6px;bottom:6px;width:3px;border-radius:0 3px 3px 0;background:var(--brand)}
+#nav .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
+#nav .bdg{font-size:11px;font-weight:700;border-radius:99px;padding:1px 7px;min-width:20px;text-align:center}
+#nav .bdg:empty{display:none}
+#nav .foot{margin-top:auto;padding:12px 10px 0;font-size:11px;color:var(--muted);border-top:1px solid var(--line)}
+body.collapsed #nav .grp,body.collapsed #nav .lbl,body.collapsed #nav .foot{display:none}
+body.collapsed #nav .grp+button{margin-top:10px}
+body.collapsed #nav button{justify-content:center;padding:10px 0}
+body.collapsed #nav .bdg{position:absolute;top:2px;right:4px;font-size:9px;padding:0 4px;min-width:0}
+#scrim{display:none}
+main{padding:18px 20px 40px;min-width:0;max-width:1600px;width:100%}
+.pagehead{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.pagehead h2{margin:0;font-size:20px;font-weight:700}
+.pagehead p{margin:2px 0 0;color:var(--muted);font-size:13px}
+body.no-create [data-cap="create"],body.no-del [data-cap="del"],body.no-upload [data-cap="upload"],body.no-settings [data-cap="settings"],body.no-restore [data-cap="restore"],body.no-edit [data-cap="edit"],body.no-minmax [data-cap="minmax"],body.no-move [data-cap="move"],body.no-review [data-cap="review"],body.no-po [data-cap="po"],body.no-publish [data-cap="publish"]{display:none!important}
+.rolebadge{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 9px;border-radius:99px;white-space:nowrap}
+.role-admin .rolebadge{background:var(--bad-bg);color:var(--bad)}.role-editor .rolebadge{background:var(--info-bg);color:var(--info)}.role-viewer .rolebadge{background:var(--ok-bg);color:var(--ok)}
+.sync{font-size:12px;color:var(--muted);white-space:nowrap}
+#pubBtn{white-space:nowrap}
+.notice{padding:10px 14px;border-radius:10px;margin-bottom:12px}
+@media (max-width:900px){.sync{display:none}}
+@media (max-width:640px){.rolebadge{display:none}#pubBtn{padding:7px 9px}}
+.grid>*{min-width:0}.card{overflow-x:auto}.help code{overflow-wrap:anywhere}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.steps .card .n{width:26px;height:26px;border-radius:50%;background:var(--brand);color:var(--brand-ink);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-right:6px}
+.steps .card p{color:var(--muted);font-size:13px;margin:6px 0 12px}
+input.cell{width:84px;text-align:right;padding:4px 6px}
+input.cell.dirty{border-color:var(--brand);background:var(--soft)}
+tr.bad td{background:var(--bad-bg)!important}
+.mvform{display:grid;grid-template-columns:minmax(220px,2fr) minmax(170px,1fr) 110px minmax(160px,1.5fr) auto;gap:10px;align-items:end}
+.mvform label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.mvform input,.mvform select{width:100%}
+@media (max-width:900px){
+  .app,body.collapsed .app{grid-template-columns:minmax(0,1fr)}
+  #nav{position:fixed;top:60px;left:0;bottom:0;height:auto;width:260px;z-index:8;transform:translateX(-102%);transition:transform .2s;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  body.navopen #nav{transform:none}
+  body.collapsed #nav .grp,body.collapsed #nav .lbl,body.collapsed #nav .foot{display:revert}
+  body.collapsed #nav .lbl{display:block}
+  body.collapsed #nav button{justify-content:flex-start;padding:8px 10px}
+  body.collapsed #nav .bdg{position:static;font-size:11px;padding:1px 7px}
+  body.navopen #scrim{display:block;position:fixed;inset:60px 0 0 0;background:rgba(0,0,0,.35);z-index:7}
+  header .sub{display:none}
+  .mvform{grid-template-columns:1fr 1fr}
+}
+@media (max-width:640px){header{gap:8px}header h1{font-size:14px}#buGlobal{max-width:130px}.mvform{grid-template-columns:1fr}}
+.tab{display:none}.tab.active{display:block}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.two{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 10px;font-size:14px}
+.kpi .v{font-size:22px;font-weight:700;margin-top:2px}
+.kpi .l{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+input[type=number]{width:90px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--brand)}
+.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn.danger{color:var(--bad)}
+.tw{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:var(--soft);font-weight:600;position:sticky;top:0;cursor:default}
+th.s{cursor:pointer}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:color-mix(in srgb,var(--soft) 50%,transparent)}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.p-ok{background:var(--ok-bg);color:var(--ok)}.p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-bad{background:var(--bad-bg);color:var(--bad)}.p-info{background:var(--info-bg);color:var(--info)}
+.p-mut{background:var(--soft);color:var(--muted)}
+.muted{color:var(--muted)}
+.bar{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--brand)}
+.brow{display:grid;grid-template-columns:150px 1fr 110px;gap:8px;align-items:center;margin:7px 0;font-size:13px}
+.gauge{position:relative;height:8px;width:110px;background:var(--soft);border-radius:4px}
+.gauge i{position:absolute;top:0;bottom:0;border-radius:4px}
+.gauge b{position:absolute;top:-3px;width:3px;height:14px;background:var(--ink);border-radius:2px}
+.banner{padding:10px 14px;border-radius:10px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chg{font-size:11px;margin-left:4px}
+.up{color:var(--bad)}.dn{color:var(--ok)}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:0;width:min(640px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dh{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:650}
+.db{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.db label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.db label input,.db label select{width:100%}
+.df{padding:12px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.set label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.help{font-size:12px;color:var(--muted);line-height:1.6}
+.help code{background:var(--soft);padding:1px 5px;border-radius:4px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+#toast.on{opacity:1}
+.thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;display:block;background:var(--soft);border:1px solid var(--line);cursor:zoom-in}
+.thumb.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--panel);color:var(--muted);padding:7px 11px;font:inherit;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--brand);color:var(--brand-ink)}
+.chip{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;background:var(--soft);color:var(--ink);margin:1px 2px 1px 0}
+.chip.own{background:var(--brand);color:var(--brand-ink)}
+.full{grid-column:1/-1}
+.secbox{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center}
+.db .secbox label{flex-direction:row;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--ink);font-size:13px;cursor:pointer}
+.ph{display:flex;gap:12px;align-items:center}
+.ph .thumb{width:84px;height:84px;font-size:28px}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;z-index:20;cursor:zoom-out;padding:16px;flex-direction:column}
+#lb.on{display:flex}#lb img{max-width:100%;max-height:80vh;border-radius:12px;background:#fff}#lb div{color:#fff;margin-top:10px;text-align:center}
+.prev{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+textarea{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12px;resize:vertical}
+dialog.wide{width:min(1000px,96vw)}
+.df{flex-direction:row-reverse;justify-content:flex-start}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:640px){main{padding:12px 16px}.brow{grid-template-columns:100px 1fr 80px}}
+</style>
+</head>
+<body>
+<header>
+  <button class="iconbtn" id="navBtn" title="Show / hide menu" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <div class="logo">N</div>
+  <div class="ttl">
+    <h1>Nacita Logistics · Material Control Tower</h1>
+    <div class="sub">MRO · Packing · Hospitality · Cleaning — Warehousing 3PL · Last Mile · Fleet &amp; Technical · IOR</div>
+  </div>
+  <div class="sp"></div>
+  <span class="rolebadge" id="roleBadge"></span><span class="sync" id="syncState"></span>
+  <select id="buGlobal" title="Business unit filter"></select>
+  <button class="iconbtn" id="reloadBtn" title="Load the latest published data" aria-label="Reload published data"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+  <button class="btn primary" id="pubBtn" data-cap="publish" disabled title="Publish your changes so everyone sees them">⇪ Publish</button>
+  <button class="iconbtn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle light / dark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+</header>
+<div class="app">
+<nav id="nav" aria-label="Main menu">
+  <div class="grp">Overview</div>
+  <button data-t="dash" class="active" title="Dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="lbl">Dashboard</span><span class="bdg" id="b-dash"></span></button>
+  <div class="grp">Master data</div>
+  <button data-t="im" title="Item master file"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg><span class="lbl">Item Master File</span><span class="bdg p-mut" id="b-im"></span></button>
+  <button data-t="up" data-cap="upload" title="Mass upload (Excel)"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span class="lbl">Mass Upload (Excel)</span></button>
+  <div class="grp">Inventory</div>
+  <button data-t="mat" title="Stock overview"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg><span class="lbl">Stock Overview</span><span class="bdg p-bad" id="b-mat"></span></button>
+  <button data-t="mm" title="Safety stock, Min and Max levels"><svg viewBox="0 0 24 24"><path d="M4 20V4"/><path d="M4 7h16M4 13h11M4 18h6" stroke-dasharray="0"/></svg><span class="lbl">Min / Max &amp; Safety Stock</span><span class="bdg p-warn" id="b-mm"></span></button>
+  <button data-t="mv" title="Stock movements"><svg viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4"/><path d="M17 20V4M13 8l4-4 4 4"/></svg><span class="lbl">Stock Movements</span></button>
+  <div class="grp">Planning</div>
+  <button data-t="rev" title="Periodic parameter review"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><span class="lbl">Parameter Review</span><span class="bdg p-warn" id="b-rev"></span></button>
+  <button data-t="ord" title="Replenishment suggestions"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6"/><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg><span class="lbl">Replenishment</span><span class="bdg p-warn" id="b-ord"></span></button>
+  <div class="grp">Procurement</div>
+  <button data-t="po" title="Purchase orders"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg><span class="lbl">Purchase Orders</span><span class="bdg p-info" id="b-po"></span></button>
+  <div class="grp">Administration</div>
+  <button data-t="log" title="Audit log"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="lbl">Audit Log</span></button>
+  <button data-t="set" title="Settings and data"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="lbl">Settings &amp; Data</span></button>
+  <div class="foot" id="navFoot"></div>
+</nav>
+<div id="scrim"></div>
+<main>
+<div id="notice"></div>
+<div class="pagehead"><div><h2 id="pgTitle">Dashboard</h2><p id="pgSub"></p></div></div>
+<!-- DASHBOARD -->
+<section class="tab active" id="t-dash">
+  <div id="revBanner"></div>
+  <div class="grid kpis" id="kpis"></div>
+  <div class="grid two" style="margin-top:12px">
+    <div class="card"><h3>Stock value by business unit</h3><div id="buBars"></div></div>
+    <div class="card"><h3>Stock health</h3><div id="statusBars"></div></div>
+    <div class="card"><h3>ABC / XYZ matrix (count · value)</h3><div id="abcx"></div></div>
+    <div class="card"><h3>Needs attention now</h3><div id="attn"></div></div>
+  </div>
+</section>
+
+<!-- ITEM MASTER -->
+<section class="tab" id="t-im">
+  <div class="grid kpis" id="imKpis" style="margin-bottom:12px"></div>
+  <div class="toolbar">
+    <input id="imSearch" placeholder="Search code, description, supplier…" style="min-width:220px">
+    <select id="imCat"><option value="">All categories</option></select>
+    <select id="imSup"><option value="">All suppliers</option></select>
+    <div class="seg" id="imUse" title="Sector usage filter"><button data-u="" class="on">All usage</button><button data-u="single">Single sector</button><button data-u="multi">Multi-sector</button></div>
+    <label class="muted"><input type="checkbox" id="imGaps"> Incomplete records only</label>
+    <div class="sp" style="flex:1"></div>
+    <button class="btn danger" data-cap="del" id="delSel" disabled>Delete selected</button>
+    <button class="btn" id="imExp" title="Export the item master to Excel">⬇ Export Excel</button>
+    <button class="btn" data-cap="upload" id="massUp">⇪ Mass upload</button>
+    <button class="btn primary" data-cap="create" id="addMat">+ Create item</button>
+  </div>
+  <div class="tw"><table id="imT"></table></div>
+  <p class="help">The item master file holds the fixed data of each material: description, category, unit of measure, owner BU and sector usage, supplier, cost, lead time, MOQ and photo. Stock quantities are in Stock Overview; planning levels are in Min / Max &amp; Safety Stock. “Incomplete” means the supplier, unit cost, lead time or consumption history is missing; without these the safety stock calculation is unreliable.</p>
+</section>
+
+<!-- MASS UPLOAD PAGE -->
+<section class="tab" id="t-up">
+  <div class="steps">
+    <div class="card"><h3><span class="n">1</span>Download the template</h3><p>An Excel workbook with the Materials sheet to fill, an Example sheet, column-by-column Instructions and the BU code list.</p><button class="btn primary" id="tplBtn">⬇ Excel template (.xlsx)</button></div>
+    <div class="card"><h3><span class="n">2</span>Upload the filled file</h3><p>Pick the .xlsx file. You get a row-by-row preview (new, update, skipped, error) before anything is imported. Photos can be added in bulk in the same step.</p><button class="btn primary" id="upGo">⇪ Upload Excel file</button></div>
+    <div class="card"><h3><span class="n">↻</span>Bulk update existing items</h3><p>Export the current item master in the same layout, change it in Excel, then upload it with “Add new + update existing”. Blank cells keep their current values.</p><button class="btn" id="upCur">⬇ Current materials (.xlsx)</button></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h3>Recent uploads</h3><div id="upHist"></div></div>
+</section>
+
+<!-- MIN MAX -->
+<section class="tab" id="t-mm">
+  <div class="toolbar">
+    <input id="mmSearch" placeholder="Search code or description…" style="min-width:220px">
+    <select id="mmFlt"><option value="">All items</option><option value="below">Position at / below Min</option><option value="nopar">Missing SS / Min / Max</option><option value="dev">Differs from proposal &gt; threshold</option></select>
+    <div class="sp" style="flex:1"></div>
+    <span class="muted" id="mmDirty"></span>
+    <button class="btn" data-cap="minmax" id="mmDiscard" disabled>Discard</button>
+    <button class="btn" data-cap="minmax" id="mmUseProp" title="Fill the edited fields of the ticked rows with the system proposal">Use proposal for ticked rows</button>
+    <button class="btn primary" data-cap="minmax" id="mmSave" disabled>Save changes</button>
+  </div>
+  <div class="tw"><table id="mmT"></table></div>
+  <p class="help">Edit Safety stock, Min and Max straight in the table, then Save. Rule: SS ≤ Min &lt; Max; rows that break it are highlighted and not saved. The “days” columns convert each level into days of average consumption. “Proposal” comes from the statistical calculation explained under Parameter Review. Every manual change is written to the Audit Log.</p>
+</section>
+
+<!-- MOVEMENTS -->
+<section class="tab" id="t-mv">
+  <div class="card" data-cap="move" style="margin-bottom:12px">
+    <h3>Post a stock movement</h3>
+    <form class="mvform" id="mvForm" autocomplete="off">
+      <label>Material<input id="mvItem" list="mvList" placeholder="Type code or description" required><datalist id="mvList"></datalist></label>
+      <label>Movement type<select id="mvType"><option value="issue">Issue / consumption (−)</option><option value="receipt">Receipt without PO (+)</option><option value="return">Return to stock (+)</option><option value="scrap">Scrap / damage (−)</option><option value="adjust">Cycle count (set counted qty)</option><option value="reserve">Set reserved qty</option></select></label>
+      <label>Quantity<input id="mvQty" type="number" min="0" step="any" required></label>
+      <label>Reference / reason<input id="mvRef" placeholder="Job no., vehicle, client, count sheet…"></label>
+      <button class="btn primary" type="submit">Post</button>
+    </form>
+    <div class="help" id="mvInfo" style="margin-top:8px"></div>
+  </div>
+  <div class="toolbar">
+    <input id="mvSearch" placeholder="Search code, reference…" style="min-width:200px">
+    <select id="mvFType"><option value="">All movement types</option></select>
+    <label class="muted">From <input type="date" id="mvFrom"></label>
+    <label class="muted">To <input type="date" id="mvTo"></label>
+    <div class="sp" style="flex:1"></div>
+    <span class="muted" id="mvSum"></span>
+    <button class="btn" id="mvCsv">⬇ Export CSV</button>
+  </div>
+  <div class="tw"><table id="mvT"></table></div>
+</section>
+
+<!-- STOCK OVERVIEW -->
+<section class="tab" id="t-mat">
+  <div class="toolbar">
+    <input id="mSearch" placeholder="Search code, name, supplier…" style="min-width:220px">
+    <select id="mStatus"><option value="">All statuses</option></select>
+    <select id="mAbc"><option value="">All ABC</option><option>A</option><option>B</option><option>C</option></select>
+    <div class="seg" id="mUse" title="Sector usage filter"><button data-u="" class="on">All usage</button><button data-u="single">Single sector</button><button data-u="multi">Multi-sector</button></div>
+  </div>
+  <div class="tw"><table id="matT"></table></div>
+  <p class="help">Sectors: the highlighted chip is the owner BU (carries the budget); other chips are BUs that also consume the material. Click a photo to enlarge.<br>Gauge: red zone = 0→Safety stock, amber = SS→Min (reorder point), green = Min→Max. Black marker = inventory position (on hand + on order − reserved).</p>
+</section>
+
+<!-- REVIEW -->
+<section class="tab" id="t-rev">
+  <div class="card" style="margin-bottom:12px">
+    <h3>Periodic parameter review</h3>
+    <div class="help" id="revInfo"></div>
+    <div class="help" style="margin-top:6px">
+      <b>Method:</b> d = average daily demand from history · σd = daily demand std-dev · LT / σLT = lead time & its variability (days)<br>
+      <code>SS = Z × √(LT·σd² + d²·σLT²)</code> · <code>Min (ROP) = d·LT + SS</code> · <code>EOQ = √(2·D·S / (H·C))</code> · <code>Max = Min + max(EOQ, d·Review period)</code> rounded up to MOQ.
+      Z comes from the service level set per ABC class. Items with Z-class (erratic) demand are flagged for manual judgement.
+    </div>
+  </div>
+  <div class="toolbar">
+    <label class="muted"><input type="checkbox" id="rOnlyFlag"> Only changes above threshold</label>
+    <div style="flex:1"></div>
+    <button class="btn" data-cap="review" id="rSelFlag">Select flagged</button>
+    <button class="btn primary" data-cap="review" id="rApprove">Approve selected</button>
+    <button class="btn" data-cap="review" id="rComplete">Mark review complete</button>
+  </div>
+  <div class="tw"><table id="revT"></table></div>
+</section>
+
+<!-- ORDERING -->
+<section class="tab" id="t-ord">
+  <div class="toolbar">
+    <span class="muted">Order-up-to-Max policy: items at or below Min are suggested; quantity = Max − position, rounded to MOQ.</span>
+    <div style="flex:1"></div>
+    <label class="muted"><input type="checkbox" id="oInclLow"> Include items within 10% above Min</label>
+    <button class="btn primary" data-cap="po" id="oCreate">Create draft POs (grouped by supplier)</button>
+  </div>
+  <div class="tw"><table id="ordT"></table></div>
+</section>
+
+<!-- PO -->
+<section class="tab" id="t-po">
+  <div class="toolbar">
+    <select id="poStatus"><option value="">All PO statuses</option><option>Draft</option><option>Approved</option><option>Sent</option><option>Received</option><option>Cancelled</option></select>
+    <span class="muted" id="poSum"></span>
+  </div>
+  <div class="tw"><table id="poT"></table></div>
+</section>
+
+<!-- LOG -->
+<section class="tab" id="t-log">
+  <div class="toolbar"><button class="btn" id="logCsv">Export log CSV</button></div>
+  <div class="tw"><table id="logT"></table></div>
+</section>
+
+<!-- SETTINGS -->
+<section class="tab" id="t-set">
+  <div class="card" style="margin-bottom:12px">
+    <h3>Planning policy</h3>
+    <div class="set" id="setForm"></div>
+    <div style="margin-top:12px"><button class="btn primary" data-cap="settings" id="saveSet">Save policy & recalculate</button></div>
+  </div>
+  <div class="card" data-cap="publish" style="margin-bottom:12px">
+    <h3>Publishing to GitHub</h3>
+    <div class="help" id="ghInfo"></div>
+    <div class="toolbar" style="margin:10px 0 0"><button class="btn" id="ghBtn">GitHub connection…</button><button class="btn primary" id="pubBtn2" disabled>⇪ Publish now</button><button class="btn" id="discardBtn">Discard my unpublished changes</button></div>
+    <p class="help" style="margin-bottom:0">Everyone opens the same data file (<code>data/nacita-data.json</code>) in the GitHub repository. Your edits stay in this browser until you click <b>Publish</b>; GitHub then updates the file and every viewer sees it within about 1–2 minutes. Publishing needs a GitHub access token, which is saved only in this browser.</p>
+  </div>
+  <div class="card">
+    <h3>Data</h3>
+    <div class="toolbar">
+      <button class="btn primary" data-cap="upload" id="impCsv">⇪ Mass upload (Excel)</button>
+      <button class="btn" data-cap="upload" id="tplXlsx">⬇ Upload template (.xlsx)</button>
+      <button class="btn" id="expXlsx">Export materials (Excel)</button>
+      <button class="btn" id="expCsv">Export CSV</button>
+      <button class="btn" id="expJson">Full backup (JSON)</button>
+      <label class="btn" data-cap="restore">Restore backup<input type="file" id="impJson" accept=".json" hidden></label>
+      <button class="btn danger" data-cap="restore" id="reset">Reset to sample data</button>
+    </div>
+    <p class="help"><b>Excel mass upload:</b> download the template, fill the <b>Materials</b> sheet (instructions and examples are in the other sheets), then upload it with Mass upload. To bulk-update existing items, export the current materials to Excel, edit, and re-upload with “Add new + update existing”. Monthly consumption goes in columns <code>M1 (oldest)</code> … <code>M6 (latest)</code> (add M7–M24 if you have more). The Excel reader loads from the internet on first use; CSV works offline.<br>CSV columns: <code>code,name,bu,sectors,category,uom,supplier,unitCost,leadTime,ltStd,moq,onHand,onOrder,reserved,ss,min,max,hist</code> — <code>bu</code> (owner) is one of WH, LM, FT, IOR; <code>sectors</code> lists every BU using it (e.g. <code>WH;LM</code>, blank = owner only); <code>hist</code> is monthly consumption, oldest→newest, separated by <code>;</code> (e.g. <code>120;135;98;140;110;125</code>). Import merges by material code. Your changes are kept in this browser until you Publish them; the JSON backup is a full copy you can keep or restore later.</p>
+  </div>
+</section>
+</main>
+</div>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"><div class="dh" id="dlgH"></div><div class="db" id="dlgB"></div><div class="df"><button class="btn primary" value="ok" id="dlgOk">Save</button><button class="btn" value="cancel" formnovalidate>Cancel</button></div></form></dialog>
+<div id="lb"><img alt=""><div></div></div>
+<div id="toast"></div>
+
+<script>
+/* ================= CONSTANTS ================= */
+const BUS={WH:"Warehousing 3PL",LM:"Last Mile Delivery",FT:"Fleet & Technical",IOR:"Import on Record"};
+const STATUS={OUT:["Stock-out","p-bad"],CRIT:["Below SS","p-bad"],ROP:["Reorder","p-warn"],OK:["Healthy","p-ok"],OVER:["Overstock","p-info"],DEAD:["No demand","p-mut"]};
+const KEY="nacita_mc_v1";
+/* ================= ROLE & PUBLISHING ================= */
+const ROLE=/^(admin|editor|viewer)$/.test("viewer")?"viewer":"admin";
+const ROLES={admin:"Admin",editor:"Editor",viewer:"Viewer"};
+const CAPS=["create","del","upload","settings","restore","edit","minmax","move","review","po","publish"];
+const EDITOR_CAPS=["edit","minmax","move","review","po","publish"];
+const CAN=Object.fromEntries(CAPS.map(c=>[c,ROLE==="admin"||(ROLE==="editor"&&EDITOR_CAPS.includes(c))]));
+document.body.classList.add("role-"+ROLE);CAPS.forEach(c=>{if(!CAN[c])document.body.classList.add("no-"+c)});
+function need(c){if(CAN[c])return true;toast("Not available in the "+ROLES[ROLE]+" version");return false}
+const DATA_URL="data/nacita-data.json",DRAFT=KEY+"_draft",GHKEY=KEY+"_github";
+let booting=true,dirty=false,pubHash=null,pubState="ok";
+function hashStr(s){let h=5381;for(let i=0;i<s.length;i++)h=(Math.imul(h,33)^s.charCodeAt(i))|0;return h>>>0}
+function emptyState(){return{settings:defaults(),materials:[],pos:[],log:[],moves:[],lastReviewDate:today(),poSeq:1,meta:{version:0}}}
+function prep(){S.settings=Object.assign(defaults(),S.settings);["materials","pos","log"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.poSeq)S.poSeq=1;if(!S.lastReviewDate)S.lastReviewDate=today();S.meta=S.meta||{version:0};migrate();classify()}
+async function fetchPublished(){try{const r=await fetch(DATA_URL+"?t="+Date.now(),{cache:"no-store"});if(r.status===404)return null;if(!r.ok)return undefined;const d=await r.json();return d&&Array.isArray(d.materials)?d:undefined}catch(e){return undefined}}
+const fmtWhen=iso=>{try{return new Date(iso).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}catch(e){return iso||""}};
+function dataLine(){const m=(S&&S.meta)||{};return m.version?`Data v${m.version} · ${fmtWhen(m.updatedAt)}${m.updatedBy?" · by "+m.updatedBy:""}`:(ROLE==="viewer"?"No data published yet":"Not published yet")}
+function setNotice(html,cls="p-warn"){document.getElementById("notice").innerHTML=html?`<div class="notice ${cls}">${html}</div>`:""}
+function ghCfg(){let c={};try{c=JSON.parse(localStorage.getItem(GHKEY)||"{}")||{}}catch(e){}
+  const hm=location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i),seg=location.pathname.split("/").filter(Boolean);
+  if(hm){if(!c.owner)c.owner=hm[1];if(!c.repo)c.repo=seg.length&&!/\.html?$/i.test(seg[0])?seg[0]:hm[1]+".github.io"}
+  c.branch=c.branch||"main";return c}
+function siteBase(){return location.href.replace(/[?#].*$/,"").replace(/[^/]*$/,"")}
+async function gh(path,opt,cfg){opt=opt||{};return fetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}${path}`,
+  Object.assign({},opt,{cache:"no-store",headers:Object.assign({Accept:"application/vnd.github+json",Authorization:"Bearer "+cfg.token,"X-GitHub-Api-Version":"2022-11-28"},opt.headers||{})}))}
+async function ghErr(r){let m="";try{m=(await r.json()).message||""}catch(e){}
+  const t={401:"The token is wrong or has expired",403:"This token is not allowed to write to the repository (it needs Contents: Read and write)",404:"Repository or branch not found, or the token has no access to it",409:"Someone published at the same moment – please try again",422:"GitHub rejected the data file"}[r.status]||("GitHub error "+r.status);
+  return new Error(t+(m?` – ${m}`:""))}
+function b64utf8(str){const b=new TextEncoder().encode(str);let s="";for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)}
+function renderSync(){
+  const el=document.getElementById("syncState");document.getElementById("roleBadge").textContent=ROLES[ROLE]+(ROLE==="viewer"?" · read only":"");
+  if(!S)return;const m=S.meta||{};
+  if(ROLE==="viewer")el.textContent=m.version?`Data v${m.version} · ${fmtWhen(m.updatedAt)}`:"";
+  else el.innerHTML=pubState==="busy"?'<span class="pill p-info">Publishing…</span>':dirty?'<span class="pill p-warn">● Unpublished changes</span>':(m.version?`<span class="pill p-ok">✓ Published v${m.version}</span>`:"");
+  ["pubBtn","pubBtn2"].forEach(i=>{const b=document.getElementById(i);if(b)b.disabled=!dirty||pubState==="busy"});
+  const gi=document.getElementById("ghInfo");if(gi&&CAN.publish){const c=ghCfg(),base=siteBase();
+    gi.innerHTML=`Repository: <b>${esc(c.owner&&c.repo?c.owner+"/"+c.repo:"not set")}</b> (branch ${esc(c.branch)}) · Token: ${c.token?'<span class="pill p-ok">saved in this browser</span>':'<span class="pill p-warn">not set</span>'} · Your name: <b>${esc(c.name||"–")}</b><br>
+    Published: <b>${esc(dataLine())}</b>${dirty?' · <span class="pill p-warn">you have unpublished changes</span>':""}<br>
+    Share links – Viewers: <a href="${esc(base)}index.html" target="_blank" rel="noopener">${esc(base)}index.html</a>${ROLE==="admin"?` · Editors: <a href="${esc(base)}editor.html" target="_blank" rel="noopener">${esc(base)}editor.html</a>`:""}`}
+}
+function ghDialog(){if(!need("publish"))return;const c=ghCfg();
+  dialog("GitHub connection",[
+    {wide:1,html:`<div class="help">Publishing updates the file <code>${DATA_URL}</code> in your GitHub repository. Paste the access token you were given (or created under GitHub → Settings → Developer settings → Fine-grained tokens, with <b>Contents: Read and write</b> on this repository only). The token is stored only in this browser – do not save it on a shared computer.</div>`},
+    {k:"owner",l:"GitHub account (owner)",v:c.owner||"",req:1},{k:"repo",l:"Repository name",v:c.repo||"",req:1},
+    {k:"branch",l:"Branch",v:c.branch||"main"},{k:"name",l:"Your name (shown in the audit log)",v:c.name||""},
+    {k:"token",l:"Access token (leave empty to remove it)",v:c.token||"",t:"password",wide:1},
+    {wide:1,html:`<button type="button" class="btn sm" id="ghTest">Test connection</button> <span id="ghTestRes" class="muted"></span>`}],
+  o=>{const n={owner:(o.owner||"").trim(),repo:(o.repo||"").trim(),branch:(o.branch||"main").trim()||"main",name:(o.name||"").trim(),token:(o.token||"").trim()};
+    try{localStorage.setItem(GHKEY,JSON.stringify(n))}catch(e){}renderSync();toast(n.token?"GitHub connection saved":"Saved without a token – publishing is off")},
+  "Save",{after:d=>{d.querySelector("#ghTest").onclick=async()=>{const f=new FormData(document.getElementById("dlgForm")),out=d.querySelector("#ghTestRes");
+    const cfg={owner:String(f.get("owner")||"").trim(),repo:String(f.get("repo")||"").trim(),token:String(f.get("token")||"").trim()};
+    if(!cfg.owner||!cfg.repo||!cfg.token){out.innerHTML='<span class="pill p-warn">Fill owner, repository and token first</span>';return}
+    out.textContent="Testing…";
+    try{const r=await gh("",{},cfg);if(!r.ok)throw await ghErr(r);const j=await r.json();
+      out.innerHTML=j.permissions&&j.permissions.push===false?`<span class="pill p-warn">Found ${esc(j.full_name)}, but this account cannot write to it</span>`:`<span class="pill p-ok">✓ Connected to ${esc(j.full_name)}</span>`}
+    catch(e){out.innerHTML=`<span class="pill p-bad">${esc(e.message==="Failed to fetch"?"No connection to GitHub":e.message)}</span>`}}}});
+}
+async function publish(){
+  if(!need("publish")||pubState==="busy")return;
+  const cfg=ghCfg();if(!cfg.token||!cfg.owner||!cfg.repo){toast("Connect to GitHub first");return ghDialog()}
+  pubState="busy";renderSync();
+  const path="/contents/"+DATA_URL,ref="?ref="+encodeURIComponent(cfg.branch),prevMeta=S.meta,logLen=S.log.length;
+  try{
+    let sha,remote={};
+    const r1=await gh(path+ref,{},cfg);
+    if(r1.ok){sha=(await r1.json()).sha;const r2=await gh(path+ref,{headers:{Accept:"application/vnd.github.raw+json"}},cfg);if(r2.ok){try{remote=(JSON.parse(await r2.text())||{}).meta||{}}catch(e){}}}
+    else if(r1.status!==404)throw await ghErr(r1);
+    const base=(prevMeta&&prevMeta.version)||0,rv=remote.version||0;
+    if(rv>base&&!confirm(`Version ${rv} was published${remote.updatedBy?" by "+remote.updatedBy:""} on ${fmtWhen(remote.updatedAt)} – after you loaded version ${base}.\n\nPublishing now replaces it with your data, and their changes would be lost.\n\nOK = publish anyway\nCancel = stop (then use ⟳ to load their version)`)){pubState="ok";renderSync();return}
+    const v=Math.max(base,rv)+1,who=cfg.name||ROLES[ROLE];
+    S.meta={version:v,updatedAt:new Date().toISOString(),updatedBy:who,role:ROLE};
+    log(ROLES[ROLE],"Published data",`Version ${v}`);
+    const body=JSON.stringify(S);
+    const r3=await gh(path,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({message:`Data v${v} – ${who} (${ROLES[ROLE]})`,content:b64utf8(body),branch:cfg.branch},sha?{sha}:{}))},cfg);
+    if(!r3.ok)throw await ghErr(r3);
+    pubHash=hashStr(body);pubState="ok";renderAll();setNotice("");
+    toast(`Published version ${v} – viewers see it within about 1–2 minutes`);
+  }catch(e){
+    S.meta=prevMeta;if(S.log.length>logLen)S.log.splice(0,S.log.length-logLen);pubState="ok";renderAll();
+    alert("Publishing failed:\n\n"+(e&&e.message==="Failed to fetch"?"No connection to GitHub – check the internet connection.":(e&&e.message)||e));
+  }
+}
+async function reloadPublished(silent){
+  if(ROLE!=="viewer"&&dirty&&!silent&&!confirm("Discard your unpublished changes and load the latest published data?"))return;
+  const pub=await fetchPublished();
+  if(!pub){if(!silent)toast(pub===null?"Nothing has been published yet":"Could not load the published data – check the connection");return}
+  if(silent&&S&&S.meta&&pub.meta&&pub.meta.version===S.meta.version)return;
+  S=pub;prep();pubHash=hashStr(JSON.stringify(S));mmEdits={};ordQty={};[matSel,revSel,ordSel,mmSel].forEach(s=>s.clear());
+  setNotice("");renderSet();renderAll();toast(`Loaded published data${S.meta.version?" – version "+S.meta.version:""}`);
+}
+function askDraft(draft,pub){return new Promise(res=>{
+  dialog("Unpublished changes found",[{wide:1,html:`<div class="help">This browser has changes you have not published yet (based on version ${draft.base||0}). Since then, <b>version ${pub.meta.version}</b> was published${pub.meta.updatedBy?" by <b>"+esc(pub.meta.updatedBy)+"</b>":""} on ${esc(fmtWhen(pub.meta.updatedAt))}.</div>`},
+    {k:"choice",l:"What do you want to do?",v:"pub",wide:1,opts:[["pub",`Load version ${pub.meta.version} (my unpublished changes are discarded)`],["draft","Keep working on my changes (publishing them will replace version "+pub.meta.version+")"]]}],
+    o=>res(o.choice),"Continue");
+  const d=document.getElementById("dlg"),inner=d.onclose;d.onclose=()=>{inner&&inner();if(d.returnValue!=="ok")res("draft")}})}
+async function boot(){
+  renderSync();document.getElementById("syncState").textContent="Loading data…";
+  const pub=await fetchPublished();let draft=null;
+  if(ROLE!=="viewer"){try{draft=JSON.parse(localStorage.getItem(DRAFT)||"null")}catch(e){}}
+  let useDraft=false;
+  if(draft&&draft.data&&draft.dirty){useDraft=true;if(pub&&(pub.meta&&pub.meta.version||0)>(draft.base||0))useDraft=(await askDraft(draft,pub))==="draft"}
+  if(pub){S=pub;prep();pubHash=hashStr(JSON.stringify(S))}else pubHash=draft&&draft.pubHash||null;
+  if(useDraft){S=draft.data;prep()}
+  else if(!pub){
+    if(draft&&draft.data){S=draft.data;prep()}
+    else if(ROLE==="admin"&&pub===null){S=sample();S.meta={version:0};prep()}
+    else{S=emptyState();prep()}
+  }
+  if(pub===null)setNotice(ROLE==="admin"?"<b>Nothing is published yet.</b> Check the data (sample data is loaded – replace it with your own via Settings → Restore backup or Mass upload), connect GitHub under Settings &amp; Data, then click <b>Publish</b>.":ROLE==="editor"?"<b>Nothing is published yet.</b> The admin has to publish the data first.":"<b>No data has been published yet.</b> Please check back later.");
+  else if(pub===undefined)setNotice(`<b>Could not load the published data</b> (offline, or the site is still being set up).${ROLE!=="viewer"&&draft?" Showing the copy saved in this browser.":""} Use ⟳ to try again.`,"p-bad");
+  booting=false;renderSet();renderAll();
+  {let p="dash";try{p=localStorage.getItem(NAVKEY)||"dash"}catch(e){}if(document.querySelector(`#nav button[data-t="${p}"][data-cap]`)&&!CAN[document.querySelector(`#nav button[data-t="${p}"]`).dataset.cap])p="dash";go(p)}
+  if(ROLE==="viewer")setInterval(()=>{if(!document.hidden)reloadPublished(true)},5*60*1000);
+}
+const today=()=>new Date().toISOString().slice(0,10);
+
+/* ================= MATH ================= */
+function normInv(p){
+  const a=[-39.69683028665376,220.9460984245205,-275.9285104469687,138.357751867269,-30.66479806614716,2.506628277459239],
+  b=[-54.47609879822406,161.5858368580409,-155.6989798598866,66.80131188771972,-13.28068155288572],
+  c=[-0.007784894002430293,-0.3223964580411365,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],
+  d=[0.007784695709041462,0.3224671290700398,2.445134137142996,3.754408661907416],pl=0.02425;
+  if(p<=0)return -8;if(p>=1)return 8;let q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+  if(p>1-pl){q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+  q=p-.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+const mean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+const stdev=a=>{if(a.length<2)return 0;const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1))};
+const ceilTo=(q,m)=>m>1?Math.ceil(q/m)*m:Math.ceil(q);
+
+/* ================= SAMPLE DATA ================= */
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646}}
+function sample(){
+  const r=rng(42);
+  // code,name,bu,cat,uom,supplier,cost EGP,LT d,ltStd,moq,base monthly,volatility,stockFactor
+  const L=[
+  ["WH-PKG-001","Stretch film 23µ 500mm","WH","Packaging","Roll","El Nour Plastics",420,7,2,50,900,.15,.9],
+  ["WH-PKG-002","Wooden pallet 120x100 (EUR)","WH","Handling","Pc","Delta Pallets",380,10,3,100,1400,.25,.55],
+  ["WH-LBL-003","Thermal labels 100x150 (1000/roll)","WH","Labels","Roll","PrintTech Egypt",260,5,1,20,320,.2,1.6],
+  ["WH-MHE-004","Forklift tyre solid 18x7-8","WH","MHE spares","Pc","Toyota MH Egypt",5200,21,6,4,6,.6,.4],
+  ["WH-MHE-005","Reach truck battery 48V 620Ah","WH","MHE spares","Pc","Hoppecke Distributor",165000,45,10,1,0.4,1.3,1],
+  ["WH-PPE-006","Safety shoes S3 (pair)","WH","PPE","Pair","SafeGuard Co.",950,14,3,20,40,.35,.25],
+  ["LM-PKG-001","Courier polybag 35x45","LM","Packaging","Pc","El Nour Plastics",2.4,7,2,5000,62000,.18,1],
+  ["LM-PKG-002","Corrugated carton 40x30x30","LM","Packaging","Pc","Misr Carton",14,10,3,1000,9000,.22,.45],
+  ["LM-DEV-003","Handheld PDA scanner","LM","Devices","Pc","Zebra Partner EG",28500,30,8,1,3,.7,1.2],
+  ["LM-PPE-004","Rider helmet certified","LM","PPE","Pc","SafeGuard Co.",1150,14,4,10,35,.4,.0],
+  ["LM-PPE-005","Delivery thermal box 45L","LM","Equipment","Pc","CoolBox Industries",1650,21,5,10,25,.45,2.8],
+  ["FT-TYR-001","Truck tyre 315/80 R22.5","FT","Tyres","Pc","Bridgestone Dealer",14500,14,4,4,28,.3,.8],
+  ["FT-OIL-002","Engine oil 15W-40 (208L drum)","FT","Lubricants","Drum","Mobil Egypt",21000,7,2,1,9,.25,.5],
+  ["FT-FIL-003","Oil filter heavy duty","FT","Filters","Pc","MANN Distributor",650,10,3,12,70,.2,1.1],
+  ["FT-BRK-004","Brake pad set – tractor head","FT","Brakes","Set","Knorr Partner",7800,25,7,2,10,.5,.3],
+  ["FT-TEL-005","GPS telematics unit","FT","Telematics","Pc","Teletrac EG",6200,35,10,5,4,.9,1.9],
+  ["FT-RIG-006","Lashing strap 10T 9m","FT","Rigging","Pc","LiftPro",780,12,3,10,30,.35,.7],
+  ["IOR-SEC-001","High-security bolt seal","IOR","Security","Pc","SealTech",28,10,2,500,2200,.2,.95],
+  ["IOR-DOC-002","Customs document file kit","IOR","Stationery","Kit","Office Pro",45,5,1,50,380,.15,1.4],
+  ["IOR-PRT-003","Laser toner cartridge","IOR","IT consumables","Pc","Office Pro",3200,7,2,2,8,.4,.35],
+  ["IOR-PKG-004","ISPM-15 heat-treated crate","IOR","Packaging","Pc","Delta Pallets",2900,18,5,5,14,.55,.6],
+  ["IOR-LBL-005","Hazmat (DG) label set","IOR","Labels","Set","PrintTech Egypt",85,7,2,50,150,.3,3.2]];
+  const mats=L.map(x=>{
+    const [code,name,bu,category,uom,supplier,unitCost,leadTime,ltStd,moq,base,vol,sf]=x;
+    const hist=Array.from({length:6},()=>Math.max(0,Math.round(base*(1+vol*(r()*2-1)*1.4))));
+    const SHARED={"WH-PKG-001":["IOR"],"WH-LBL-003":["LM"],"WH-PPE-006":["LM","FT","IOR"],"LM-PKG-002":["WH"],"FT-RIG-006":["IOR"],"IOR-SEC-001":["FT"],"IOR-PRT-003":["WH","LM","FT"]};
+    const sectors=[bu,...(SHARED[code]||[])];
+    const m={code,name,bu,sectors,usage:sectors.length>1?"multi":"single",photo:"",category,uom,supplier,unitCost,leadTime,ltStd,moq,hist,onHand:0,onOrder:0,reserved:0,ss:0,min:0,max:0,lastReview:"2026-08-10"};
+    return m;
+  });
+  const st={settings:defaults(),materials:mats,pos:[],log:[],moves:[],lastReviewDate:"2026-08-10",poSeq:1,meta:{version:0}};
+  S=st;classify();
+  mats.forEach((m,i)=>{
+    const p=propose(m);const f=.65+r()*.8;
+    m.ss=Math.round(p.ss*f);m.min=Math.round(p.min*f);m.max=Math.round(p.max*(.7+r()*.9));
+    if(m.max<=m.min)m.max=m.min+m.moq;
+    m.onHand=Math.round(L[i][12]*p.max);
+    if(i%5===2)m.onOrder=ceilTo(p.max*.3,m.moq);
+    if(i%7===3)m.reserved=Math.round(p.d*3);
+  });
+  log("System","Sample data loaded","22 materials across 4 BUs");
+  return st;
+}
+function defaults(){return{slA:98,slB:95,slC:90,reviewEvery:90,reviewPeriod:14,orderCost:350,holdPct:22,threshold:20,overDays:120,currency:"EGP",daysPerMonth:30}}
+
+/* ================= STATE ================= */
+let S;
+let _quotaWarned=false;
+function save(){if(booting||ROLE==="viewer")return;let str;try{str=JSON.stringify(S)}catch(e){return}dirty=hashStr(str)!==pubHash;try{localStorage.setItem(DRAFT,`{"base":${Number(S.meta&&S.meta.version)||0},"dirty":${dirty},"pubHash":${pubHash||0},"data":${str}}`);_quotaWarned=false}catch(e){if(!_quotaWarned&&e&&/quota/i.test(e.name+e.message)){_quotaWarned=true;setTimeout(()=>toast("Browser storage is full – remove some photos or keep a JSON backup"),300)}}}
+function migrate(){if(!Array.isArray(S.moves))S.moves=[];S.materials.forEach(m=>{
+  if(!BUS[m.bu])m.bu="WH";
+  let s=Array.isArray(m.sectors)?m.sectors.filter(x=>BUS[x]):[];
+  if(!s.includes(m.bu))s.unshift(m.bu);m.sectors=[...new Set(s)];
+  m.usage=m.sectors.length>1?"multi":"single";if(m.photo===undefined)m.photo="";if(!Array.isArray(m.hist))m.hist=[0]})}
+const usageOf=m=>(m.sectors||[m.bu]).length>1?"multi":"single";
+const blankMat=()=>({code:"",name:"",bu:"WH",sectors:["WH"],usage:"single",photo:"",category:"",uom:"Pc",supplier:"",unitCost:0,leadTime:7,ltStd:0,moq:1,onHand:0,onOrder:0,reserved:0,ss:0,min:0,max:0,hist:[0]});
+function resizeImage(file,max=220){return new Promise((res,rej)=>{
+  if(!file||!/^image\//.test(file.type))return rej(new Error("Not an image"));
+  const fr=new FileReader();fr.onerror=()=>rej(fr.error);fr.onload=()=>{const img=new Image();img.onerror=()=>rej(new Error("Cannot read image"));
+    img.onload=()=>{const k=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.72))};img.src=fr.result};fr.readAsDataURL(file)})}
+const safeImg=u=>/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(u||"")?u:"";
+const sectorChips=m=>(m.sectors||[m.bu]).map(s=>`<span class="chip ${s===m.bu?"own":""}" title="${esc(BUS[s]||s)}${s===m.bu?" (owner)":""}">${esc(s)}</span>`).join("");
+
+function log(user,action,detail){const n=ROLE!=="viewer"?(ghCfg().name||""):"";S.log.unshift({ts:new Date().toISOString().slice(0,16).replace("T"," "),user:n?`${n} · ${user}`:user,action,detail})}
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),2200)}
+const fmt=(n,d=0)=>isFinite(n)?Number(n).toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:d}):"–";
+const money=n=>fmt(n)+" "+S.settings.currency;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const byCode=c=>S.materials.find(m=>m.code===c);
+
+/* ================= ENGINE ================= */
+function demand(m){
+  const dpm=S.settings.daysPerMonth,h=m.hist||[];
+  const d=mean(h)/dpm, sd=stdev(h)/Math.sqrt(dpm), cv=mean(h)?stdev(h)/mean(h):0;
+  return{d,sd,cv,annual:mean(h)*12};
+}
+function classify(){
+  const rows=S.materials.map(m=>({m,v:demand(m).annual*m.unitCost})).sort((a,b)=>b.v-a.v);
+  const tot=rows.reduce((s,x)=>s+x.v,0)||1;let cum=0;
+  rows.forEach(x=>{cum+=x.v;const p=cum/tot;x.m._abc=p<=.8||x===rows[0]?"A":p<=.95?"B":"C";
+    const cv=demand(x.m).cv;x.m._xyz=cv<=.5?"X":cv<=1?"Y":"Z"});
+}
+function serviceLevel(m){const s=S.settings;return m._abc==="A"?s.slA:m._abc==="B"?s.slB:s.slC}
+function propose(m){
+  const s=S.settings,{d,sd,cv,annual}=demand(m);
+  const z=normInv(serviceLevel(m)/100);
+  const ss=z*Math.sqrt(m.leadTime*sd*sd+d*d*m.ltStd*m.ltStd);
+  const H=s.holdPct/100*m.unitCost;
+  const eoq=H>0&&annual>0?Math.sqrt(2*annual*s.orderCost/H):0;
+  const minV=d*m.leadTime+ss;
+  const cycle=Math.max(eoq,d*s.reviewPeriod,m.moq);
+  return{d,sd,cv,z,eoq,ss:Math.ceil(ss),min:Math.ceil(minV),max:ceilTo(minV+cycle,m.moq),annual};
+}
+function calc(m){
+  const {d}=demand(m),pos=m.onHand+m.onOrder-m.reserved,avail=m.onHand-m.reserved;
+  let st="OK";
+  if(d<=0&&m.onHand>0)st="DEAD";
+  else if(avail<=0)st="OUT";
+  else if(avail<m.ss)st="CRIT";
+  else if(pos<=m.min)st="ROP";
+  else if(m.onHand>m.max||(d>0&&m.onHand/d>S.settings.overDays))st="OVER";
+  return{d,pos,avail,cover:d>0?avail/d:Infinity,st,value:m.onHand*m.unitCost};
+}
+function buOK(m){const b=document.getElementById("buGlobal").value;return!b||m.bu===b||(m.sectors||[]).includes(b)}
+
+/* ================= RENDER: DASHBOARD ================= */
+function renderDash(){
+  const ms=S.materials.filter(buOK),cs=ms.map(m=>({m,c:calc(m)}));
+  const val=cs.reduce((s,x)=>s+x.c.value,0);
+  const cnt=k=>cs.filter(x=>x.c.st===k).length;
+  const overVal=cs.filter(x=>x.c.st==="OVER"||x.c.st==="DEAD").reduce((s,x)=>s+Math.max(0,x.m.onHand-x.m.max)*x.m.unitCost,0);
+  const cogs=ms.reduce((s,m)=>s+demand(m).annual*m.unitCost,0);
+  const openPO=S.pos.filter(p=>["Draft","Approved","Sent"].includes(p.status)&&(!document.getElementById("buGlobal").value||p.lines.some(l=>buOK(byCode(l.code)||{}))))
+    .reduce((s,p)=>s+poVal(p),0);
+  const fill=ms.length?(ms.length-cnt("OUT"))/ms.length*100:0;
+  const k=[["Materials tracked",fmt(ms.length),""],["Stock value",money(val),""],
+    ["Stock-outs",cnt("OUT"),cnt("OUT")?"p-bad":""],["Below safety stock",cnt("CRIT"),cnt("CRIT")?"p-bad":""],
+    ["At reorder point",cnt("ROP"),cnt("ROP")?"p-warn":""],["Excess stock value",money(overVal),overVal?"p-info":""],
+    ["Open PO value",money(openPO),""],["Inventory turns / yr",val?fmt(cogs/val,1):"–",""],["Item availability",fmt(fill,1)+" %",""],
+    ["Multi-sector / single-sector",`${ms.filter(m=>usageOf(m)==="multi").length} / ${ms.filter(m=>usageOf(m)==="single").length}`,""]];
+  document.getElementById("kpis").innerHTML=k.map(([l,v,c])=>`<div class="card kpi"><div class="l">${l}</div><div class="v">${c?`<span class="pill ${c}" style="font-size:20px">${v}</span>`:v}</div></div>`).join("");
+  // BU bars
+  const byBu={};S.materials.forEach(m=>byBu[m.bu]=(byBu[m.bu]||0)+m.onHand*m.unitCost);
+  const mx=Math.max(...Object.values(byBu),1);
+  document.getElementById("buBars").innerHTML=Object.keys(BUS).map(b=>`<div class="brow"><span>${BUS[b]}</span><div class="bar"><i style="width:${(byBu[b]||0)/mx*100}%"></i></div><span class="n" style="text-align:right">${fmt((byBu[b]||0)/1000)}k</span></div>`).join("");
+  const sb=Object.keys(STATUS).map(s=>[s,cnt(s)]);const smx=Math.max(...sb.map(x=>x[1]),1);
+  document.getElementById("statusBars").innerHTML=sb.map(([s,n])=>`<div class="brow"><span><span class="pill ${STATUS[s][1]}">${STATUS[s][0]}</span></span><div class="bar"><i style="width:${n/smx*100}%;background:var(--${STATUS[s][1].slice(2)==="mut"?"muted":STATUS[s][1].slice(2)})"></i></div><span style="text-align:right">${n} items</span></div>`).join("");
+  // ABC XYZ
+  let h=`<table><tr><th></th><th>X (stable)</th><th>Y (variable)</th><th>Z (erratic)</th></tr>`;
+  ["A","B","C"].forEach(a=>{h+=`<tr><th>${a}</th>`;["X","Y","Z"].forEach(x=>{const g=cs.filter(y=>y.m._abc===a&&y.m._xyz===x);h+=`<td>${g.length} · ${fmt(g.reduce((s,y)=>s+y.c.value,0)/1000)}k</td>`});h+="</tr>"});
+  document.getElementById("abcx").innerHTML=h+"</table><p class='help'>AX/BX: automate replenishment. AZ/BZ: review manually, consider supplier agreements or buffer at supplier. CZ: order on demand.</p>";
+  // attention
+  const order={OUT:0,CRIT:1,ROP:2,OVER:3,DEAD:4};
+  const at=cs.filter(x=>x.c.st!=="OK").sort((a,b)=>order[a.c.st]-order[b.c.st]||a.c.cover-b.c.cover).slice(0,8);
+  document.getElementById("attn").innerHTML=at.length?`<table>${at.map(x=>`<tr><td><b>${esc(x.m.code)}</b><br><span class="muted">${esc(x.m.name)}</span></td><td><span class="pill ${STATUS[x.c.st][1]}">${STATUS[x.c.st][0]}</span></td><td class="n">${x.c.cover===Infinity?"–":fmt(x.c.cover)+" d cover"}<br><span class="muted">LT ${x.m.leadTime} d</span></td></tr>`).join("")}</table>`:"<p class='muted'>Everything is within policy.</p>";
+  // review banner
+  const due=addDays(S.lastReviewDate,S.settings.reviewEvery),late=due<=today();
+  document.getElementById("revBanner").innerHTML=`<div class="banner ${late?"p-warn":"p-ok"}"><b>${late?"Parameter review overdue":"Next parameter review"}</b><span>Last review ${S.lastReviewDate} · due ${due} (every ${S.settings.reviewEvery} days)</span><button class="btn sm" onclick="go('rev')">Open review</button></div>`;
+}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+Number(n));return x.toISOString().slice(0,10)}
+
+/* ================= RENDER: MATERIALS ================= */
+let mSort={k:"st",dir:1},mUse="",matSel=new Set();
+function renderMat(){
+  const q=document.getElementById("mSearch").value.toLowerCase(),fs=document.getElementById("mStatus").value,fa=document.getElementById("mAbc").value;
+  const order={OUT:0,CRIT:1,ROP:2,OVER:3,DEAD:4,OK:5};
+  let rows=S.materials.filter(buOK).map(m=>({m,c:calc(m)})).filter(x=>(!q||(x.m.code+x.m.name+x.m.supplier+x.m.category).toLowerCase().includes(q))&&(!fs||x.c.st===fs)&&(!fa||x.m._abc===fa)&&(!mUse||usageOf(x.m)===mUse));
+  const key={code:x=>x.m.code,bu:x=>x.m.bu,st:x=>order[x.c.st],cover:x=>x.c.cover,value:x=>x.c.value,abc:x=>x.m._abc+x.m._xyz};
+  const f=key[mSort.k]||key.st;rows.sort((a,b)=>(f(a)>f(b)?1:f(a)<f(b)?-1:0)*mSort.dir);
+  const th=(k,l,n)=>`<th class="s ${n?"n":""}" data-sort="${k}">${l}${mSort.k===k?(mSort.dir>0?" ▲":" ▼"):""}</th>`;
+  document.getElementById("matT").innerHTML=`<tr><th>Photo</th>${th("code","Code")}<th>Material</th>${th("bu","Sectors")}${th("abc","Class")}<th class="n">On hand</th><th class="n">On order</th><th class="n">Reserved</th><th class="n">Position</th><th class="n">SS</th><th class="n">Min</th><th class="n">Max</th><th>Level</th>${th("cover","Days cover",1)}${th("value","Value",1)}${th("st","Status")}<th></th></tr>`+
+  rows.map(({m,c})=>{const top=Math.max(m.max,c.pos,1)*1.1,p=v=>Math.min(100,Math.max(0,v/top*100));
+    const ph=safeImg(m.photo);
+    return`<tr><td>${ph?`<img class="thumb" src="${ph}" data-ph="${esc(m.code)}" alt="${esc(m.name)}">`:`<span class="thumb empty" title="No photo">📷</span>`}</td><td><b>${esc(m.code)}</b></td><td>${esc(m.name)}<br><span class="muted">${esc(m.supplier)} · ${esc(m.uom)}</span></td><td>${sectorChips(m)}<br><span class="muted" style="font-size:11px">${usageOf(m)==="multi"?"Multi-sector":"Single sector"}</span></td><td>${m._abc}${m._xyz}</td>
+    <td class="n">${fmt(m.onHand)}</td><td class="n">${fmt(m.onOrder)}</td><td class="n">${fmt(m.reserved)}</td><td class="n"><b>${fmt(c.pos)}</b></td>
+    <td class="n">${fmt(m.ss)}</td><td class="n">${fmt(m.min)}</td><td class="n">${fmt(m.max)}</td>
+    <td><div class="gauge"><i style="left:0;width:${p(m.ss)}%;background:var(--bad);opacity:.5"></i><i style="left:${p(m.ss)}%;width:${p(m.min)-p(m.ss)}%;background:var(--warn);opacity:.5"></i><i style="left:${p(m.min)}%;width:${p(m.max)-p(m.min)}%;background:var(--ok);opacity:.5"></i><b style="left:${p(c.pos)}%"></b></div></td>
+    <td class="n">${c.cover===Infinity?"∞":fmt(c.cover)}</td><td class="n">${fmt(c.value)}</td><td><span class="pill ${STATUS[c.st][1]}">${STATUS[c.st][0]}</span></td>
+    <td><button class="btn sm" data-cap="move" data-mv="${esc(m.code)}">Movement</button> <button class="btn sm" data-cap="edit" data-ed="${esc(m.code)}">Edit item</button></td></tr>`}).join("")||`<tr><td colspan="16" class="muted">No materials match.</td></tr>`;
+}
+
+/* ================= RENDER: ITEM MASTER ================= */
+let imUse="",imSort={k:"code",dir:1};
+const gapsOf=m=>{const g=[];if(!m.supplier)g.push("supplier");if(!(m.unitCost>0))g.push("unit cost");if(!(m.leadTime>0))g.push("lead time");if(!(m.hist||[]).some(v=>v>0))g.push("history");return g};
+function fillSelect(id,vals,label){const el=document.getElementById(id),cur=el.value;el.innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option ${v===cur?"selected":""}>${esc(v)}</option>`).join("");if(!vals.includes(cur))el.value=""}
+function renderIM(){
+  [...matSel].forEach(c=>{if(!byCode(c))matSel.delete(c)});
+  const all=S.materials.filter(buOK);
+  fillSelect("imCat",[...new Set(S.materials.map(m=>m.category).filter(Boolean))].sort(),"All categories");
+  fillSelect("imSup",[...new Set(S.materials.map(m=>m.supplier).filter(Boolean))].sort(),"All suppliers");
+  const q=document.getElementById("imSearch").value.toLowerCase(),fc=document.getElementById("imCat").value,fsu=document.getElementById("imSup").value,gaps=document.getElementById("imGaps").checked;
+  let rows=all.filter(m=>(!q||(m.code+m.name+m.supplier+m.category).toLowerCase().includes(q))&&(!fc||m.category===fc)&&(!fsu||m.supplier===fsu)&&(!imUse||usageOf(m)===imUse)&&(!gaps||gapsOf(m).length));
+  const key={code:m=>m.code,name:m=>m.name.toLowerCase(),cat:m=>m.category,bu:m=>m.bu,sup:m=>m.supplier,cost:m=>m.unitCost,lt:m=>m.leadTime,abc:m=>m._abc+m._xyz};
+  const f=key[imSort.k]||key.code;rows.sort((a,b)=>(f(a)>f(b)?1:f(a)<f(b)?-1:0)*imSort.dir);
+  const k=[["Items in master",fmt(all.length)],["Categories",new Set(all.map(m=>m.category).filter(Boolean)).size],["Suppliers",new Set(all.map(m=>m.supplier).filter(Boolean)).size],
+    ["Multi-sector items",all.filter(m=>usageOf(m)==="multi").length],["With photo",`${all.filter(m=>safeImg(m.photo)).length} / ${all.length}`],["Incomplete records",all.filter(m=>gapsOf(m).length).length]];
+  document.getElementById("imKpis").innerHTML=k.map(([l,v],i)=>`<div class="card kpi"><div class="l">${l}</div><div class="v">${i===5&&v?`<span class="pill p-warn" style="font-size:20px">${v}</span>`:v}</div></div>`).join("");
+  const ds=document.getElementById("delSel");ds.disabled=!matSel.size;ds.textContent=matSel.size?`Delete selected (${matSel.size})`:"Delete selected";
+  const th=(k,l,n)=>`<th class="s ${n?"n":""}" data-isort="${k}">${l}${imSort.k===k?(imSort.dir>0?" ▲":" ▼"):""}</th>`;
+  const allSel=rows.length&&rows.every(m=>matSel.has(m.code));
+  document.getElementById("imT").innerHTML=`<tr><th data-cap="del"><input type="checkbox" id="msAll" ${allSel?"checked":""} title="Select all shown"></th><th>Photo</th>${th("code","Code")}${th("name","Description")}${th("cat","Category")}<th>UoM</th>${th("bu","Owner BU")}<th>Sector usage</th>${th("sup","Supplier")}${th("cost","Unit cost",1)}${th("lt","Lead time ± σ",1)}<th class="n">MOQ</th>${th("abc","Class")}<th>Record</th><th></th></tr>`+
+  (rows.map(m=>{const ph=safeImg(m.photo),g=gapsOf(m);
+    return`<tr><td data-cap="del"><input type="checkbox" data-ms="${esc(m.code)}" ${matSel.has(m.code)?"checked":""}></td><td>${ph?`<img class="thumb" src="${ph}" data-ph="${esc(m.code)}" alt="${esc(m.name)}">`:`<span class="thumb empty" title="No photo">📷</span>`}</td>
+    <td><b>${esc(m.code)}</b></td><td style="white-space:normal;min-width:180px">${esc(m.name)}</td><td>${esc(m.category||"–")}</td><td>${esc(m.uom)}</td><td title="${esc(BUS[m.bu])}">${esc(m.bu)}</td>
+    <td>${sectorChips(m)}</td><td>${esc(m.supplier||"–")}</td><td class="n">${fmt(m.unitCost,m.unitCost<10?2:0)}</td><td class="n">${m.leadTime} ± ${m.ltStd} d</td><td class="n">${fmt(m.moq)}</td><td>${m._abc}${m._xyz}</td>
+    <td>${g.length?`<span class="pill p-warn" title="Missing: ${esc(g.join(", "))}">Missing ${g.length}</span>`:'<span class="pill p-ok">Complete</span>'}</td>
+    <td><button class="btn sm" data-cap="edit" data-ed="${esc(m.code)}">Edit</button> <button class="btn sm" data-cap="create" data-dup="${esc(m.code)}" title="Create a new item from a copy of this one">Copy</button> <button class="btn sm danger" data-cap="del" data-del="${esc(m.code)}" title="Delete item">✕</button></td></tr>`}).join("")||`<tr><td colspan="15" class="muted">No items match.</td></tr>`);
+}
+function dupItem(code){if(!need("create"))return;const s=byCode(code);if(!s)return;let n=2,c;do{c=`${s.code}-${n++}`}while(byCode(c));
+  const m=Object.assign(JSON.parse(JSON.stringify(s)),{code:c,name:s.name+" (copy)",onHand:0,onOrder:0,reserved:0,lastReview:today()});
+  S.materials.push(m);log("Planner","Item created (copy)",`${c} copied from ${code}`);renderAll();editMat(c);toast("Copy created – adjust code and details")}
+
+/* ================= RENDER: MIN / MAX ================= */
+let mmEdits={},mmSel=new Set();
+function mmVal(m,k){return mmEdits[m.code]&&mmEdits[m.code][k]!==undefined?mmEdits[m.code][k]:m[k]}
+const mmBad=(ss,mn,mx)=>ss>mn?"SS above Min":mx<=mn?"Max must be above Min":"";
+function renderMM(){
+  const q=document.getElementById("mmSearch").value.toLowerCase(),fl=document.getElementById("mmFlt").value,thr=S.settings.threshold;
+  const pc=(a,b)=>a?Math.abs((b-a)/a*100):(b?100:0);
+  let rows=S.materials.filter(buOK).map(m=>({m,c:calc(m),p:propose(m)})).filter(({m,c,p})=>(!q||(m.code+m.name).toLowerCase().includes(q))&&
+    (!fl||fl==="below"&&c.pos<=m.min||fl==="nopar"&&(!m.ss||!m.min||!m.max)||fl==="dev"&&Math.max(pc(m.ss,p.ss),pc(m.min,p.min),pc(m.max,p.max))>=thr));
+  rows.sort((a,b)=>a.m.code.localeCompare(b.m.code));
+  mmHeader();
+  const days=(v,d)=>d>0?fmt(v/d):"–";
+  const allSel=rows.length&&rows.every(r=>mmSel.has(r.m.code));
+  document.getElementById("mmT").innerHTML=`<tr><th data-cap="minmax"><input type="checkbox" id="mmAll" ${allSel?"checked":""}></th><th>Code</th><th>Description</th><th>Class</th><th class="n">Avg / day</th><th class="n">LT (d)</th><th class="n">Position</th>
+    <th class="n">Safety stock</th><th class="n">Min (ROP)</th><th class="n">Max</th><th class="n">SS days</th><th class="n">Min days</th><th class="n">Max days</th><th class="n">Proposal SS / Min / Max</th><th>Status</th></tr>`+
+  (rows.map(({m,c,p})=>{const ss=mmVal(m,"ss"),mn=mmVal(m,"min"),mx=mmVal(m,"max"),e=mmEdits[m.code]||{},err=mmBad(ss,mn,mx);
+    const inp=k=>CAN.minmax?`<input class="cell ${e[k]!==undefined?"dirty":""}" type="number" min="0" step="1" value="${mmVal(m,k)}" data-mm="${esc(m.code)}" data-k="${k}">`:`<b>${fmt(mmVal(m,k))}</b>`;
+    return`<tr class="${err?"bad":""}" data-row="${esc(m.code)}"><td data-cap="minmax"><input type="checkbox" data-mms="${esc(m.code)}" ${mmSel.has(m.code)?"checked":""}></td><td><b>${esc(m.code)}</b></td><td>${esc(m.name)}<br><span class="muted">${esc(m.uom)}</span></td><td>${m._abc}${m._xyz}</td>
+    <td class="n">${fmt(c.d,2)}</td><td class="n">${m.leadTime}</td><td class="n"><b>${fmt(c.pos)}</b></td><td class="n">${inp("ss")}</td><td class="n">${inp("min")}</td><td class="n">${inp("max")}</td>
+    <td class="n" data-dk="ss">${days(ss,c.d)}</td><td class="n" data-dk="min">${days(mn,c.d)}</td><td class="n" data-dk="max">${days(mx,c.d)}</td><td class="n muted">${fmt(p.ss)} / ${fmt(p.min)} / ${fmt(p.max)}</td>
+    <td data-stc>${mmStatus(m,c,err)}</td></tr>`}).join("")||`<tr><td colspan="15" class="muted">No items match.</td></tr>`);
+}
+function mmStatus(m,c,err){return err?`<span class="pill p-bad">${err}</span>`:`<span class="pill ${STATUS[c.st][1]}">${STATUS[c.st][0]}</span>`}
+function mmHeader(){const codes=Object.keys(mmEdits),bad=codes.filter(c=>{const m=byCode(c);return m&&mmBad(mmVal(m,"ss"),mmVal(m,"min"),mmVal(m,"max"))}).length;
+  document.getElementById("mmDirty").innerHTML=codes.length?`${codes.length} item(s) edited${bad?` · <span class="pill p-bad">${bad} invalid</span>`:""}`:"";
+  document.getElementById("mmSave").disabled=!codes.length||codes.length===bad;document.getElementById("mmDiscard").disabled=!codes.length}
+
+/* ================= RENDER: MOVEMENTS ================= */
+const MVT={issue:["Issue","−"],receipt:["Receipt","+"],po:["PO receipt","+"],return:["Return","+"],scrap:["Scrap","−"],adjust:["Cycle count","±"],reserve:["Reservation","="]};
+function postMove(m,type,q,ref,user="Storekeeper"){
+  q=Math.max(0,Number(q)||0);const before=m.onHand;let d="",delta=0;
+  if(type==="issue"||type==="scrap"){const x=Math.min(q,m.onHand);m.onHand-=x;delta=-x;if(type==="issue")m.hist[m.hist.length-1]=(m.hist[m.hist.length-1]||0)+x;d=`${MVT[type][0]} ${x}${x<q?` (only ${x} available)`:""}`}
+  else if(type==="receipt"||type==="return"||type==="po"){m.onHand+=q;delta=q;d=`${MVT[type][0]} ${q}`}
+  else if(type==="adjust"){delta=q-m.onHand;d=`Counted ${q} (system ${m.onHand}, variance ${delta>0?"+":""}${delta})`;m.onHand=q}
+  else{d=`Reserved ${m.reserved} → ${q}`;m.reserved=q}
+  (S.moves=S.moves||[]).unshift({ts:new Date().toISOString().slice(0,16).replace("T"," "),code:m.code,type,qty:type==="reserve"?q:delta,before,after:m.onHand,ref:ref||"",user});
+  if(S.moves.length>5000)S.moves.length=5000;
+  if(type!=="po")log(user,"Movement "+m.code,d+(ref?` · ${ref}`:""));return d;
+}
+function renderMV(){
+  document.getElementById("mvList").innerHTML=S.materials.map(m=>`<option value="${esc(m.code)}">${esc(m.name)}</option>`).join("");
+  const ft=document.getElementById("mvFType");if(ft.options.length<2)ft.innerHTML+=Object.entries(MVT).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join("");
+  const q=document.getElementById("mvSearch").value.toLowerCase(),t=ft.value,fr=document.getElementById("mvFrom").value,to=document.getElementById("mvTo").value;
+  const list=(S.moves||[]).filter(x=>{const m=byCode(x.code);return(!m||buOK(m))&&(!t||x.type===t)&&(!fr||x.ts.slice(0,10)>=fr)&&(!to||x.ts.slice(0,10)<=to)&&(!q||(x.code+" "+x.ref+" "+(m?m.name:"")).toLowerCase().includes(q))});
+  const inQ=list.filter(x=>x.type!=="reserve"&&x.qty>0).reduce((s,x)=>s+x.qty,0),outQ=list.filter(x=>x.type!=="reserve"&&x.qty<0).reduce((s,x)=>s-x.qty,0);
+  document.getElementById("mvSum").textContent=`${list.length} movement(s) · in ${fmt(inQ)} · out ${fmt(outQ)} units`;
+  const cls={issue:"p-warn",scrap:"p-bad",receipt:"p-ok",po:"p-ok",return:"p-ok",adjust:"p-info",reserve:"p-mut"};
+  document.getElementById("mvT").innerHTML=`<tr><th>Date / time</th><th>Code</th><th>Description</th><th>Type</th><th class="n">Qty</th><th class="n">Stock before</th><th class="n">Stock after</th><th>Reference</th><th>User</th></tr>`+
+  (list.slice(0,1000).map(x=>{const m=byCode(x.code);return`<tr><td>${x.ts}</td><td><b>${esc(x.code)}</b></td><td>${esc(m?m.name:"(deleted item)")}</td><td><span class="pill ${cls[x.type]||"p-mut"}">${(MVT[x.type]||[x.type])[0]}</span></td>
+    <td class="n"><b>${x.type==="reserve"?"= "+fmt(x.qty):(x.qty>0?"+":"")+fmt(x.qty)}</b></td><td class="n">${fmt(x.before)}</td><td class="n">${fmt(x.after)}</td><td style="white-space:normal">${esc(x.ref)}</td><td>${esc(x.user)}</td></tr>`}).join("")||`<tr><td colspan="9" class="muted">No movements recorded yet. Post one above, use “Movement” in Stock Overview, or receive a PO.</td></tr>`);
+  mvInfo();
+}
+function mvItemOf(){const v=document.getElementById("mvItem").value.trim();return byCode(v)||S.materials.find(m=>m.code.toLowerCase()===v.toLowerCase()||m.name.toLowerCase()===v.toLowerCase())}
+function mvInfo(){const m=mvItemOf(),el=document.getElementById("mvInfo");if(!m){el.textContent="";return}const c=calc(m);
+  el.innerHTML=`<b>${esc(m.code)}</b> · ${esc(m.name)} — on hand <b>${fmt(m.onHand)} ${esc(m.uom)}</b> · reserved ${fmt(m.reserved)} · on order ${fmt(m.onOrder)} · SS ${fmt(m.ss)} · Min ${fmt(m.min)} · Max ${fmt(m.max)} · <span class="pill ${STATUS[c.st][1]}">${STATUS[c.st][0]}</span>`}
+
+/* ================= RENDER: UPLOAD PAGE + NAV ================= */
+function renderUp(){const l=S.log.filter(x=>/^Mass upload|CSV import/.test(x.action)).slice(0,10);
+  document.getElementById("upHist").innerHTML=l.length?`<table><tr><th>Time</th><th>User</th><th>Result</th></tr>${l.map(x=>`<tr><td>${x.ts}</td><td>${esc(x.user)}</td><td>${esc(x.detail)}</td></tr>`).join("")}</table>`:`<p class="muted" style="margin:0">No uploads yet.</p>`}
+const PAGES={dash:["Dashboard","Stock health, value and alerts across all business units"],im:["Item Master File","Create and maintain material master data – description, UoM, supplier, cost, lead time, MOQ, sectors and photos"],
+  up:["Mass Upload (Excel)","Create or update many items at once from the Excel template"],mat:["Stock Overview","On hand, on order, reserved and inventory position against SS / Min / Max"],
+  mm:["Min / Max & Safety Stock","Set and adjust planning levels per material"],mv:["Stock Movements","Post issues, receipts, returns, scrap and cycle counts – full movement history"],
+  rev:["Parameter Review","Periodic statistical check and adjustment of safety stock, Min and Max"],ord:["Replenishment","What to order now, how much, and how urgently"],
+  po:["Purchase Orders","Approve, send and receive orders"],log:["Audit Log","Who changed what, and when"],set:["Settings & Data","Planning policy, backups and data exchange"]};
+function renderNav(){
+  const ms=S.materials.filter(buOK),cs=ms.map(m=>calc(m));
+  const set=(id,v)=>{document.getElementById(id).textContent=v||""};
+  set("b-mat",cs.filter(c=>c.st==="OUT"||c.st==="CRIT").length);
+  set("b-mm",ms.filter(m=>!m.min||!m.max).length);
+  set("b-ord",ms.filter((m,i)=>cs[i].st!=="DEAD"&&cs[i].pos<=m.min).length);
+  set("b-po",S.pos.filter(p=>["Draft","Approved","Sent"].includes(p.status)).length);
+  set("b-im",ms.length);
+  set("b-rev",addDays(S.lastReviewDate,S.settings.reviewEvery)<=today()?"due":"");
+  document.getElementById("navFoot").innerHTML=`${ms.length} items · ${esc(document.getElementById("buGlobal").selectedOptions[0]?.text||"All business units")}<br>${esc(dataLine())}`;
+}
+
+/* ================= RENDER: REVIEW ================= */
+let revSel=new Set();
+function renderRev(){
+  classify();
+  const s=S.settings,due=addDays(S.lastReviewDate,s.reviewEvery);
+  document.getElementById("revInfo").innerHTML=`Last completed review: <b>${S.lastReviewDate}</b> · Next due: <b>${due}</b> ${due<=today()?'<span class="pill p-warn">Overdue</span>':""} · Service levels A/B/C: ${s.slA}% / ${s.slB}% / ${s.slC}% · Change threshold: ±${s.threshold}%`;
+  const only=document.getElementById("rOnlyFlag").checked;
+  const dPct=(a,b)=>a?((b-a)/a*100):(b?100:0);
+  const cell=(cur,pr)=>{const p=dPct(cur,pr);return`<td class="n">${fmt(cur)} → <b>${fmt(pr)}</b>${Math.abs(p)>=1?`<span class="chg ${p>0?"up":"dn"}">${p>0?"+":""}${fmt(p)}%</span>`:""}</td>`};
+  let rows=S.materials.filter(buOK).map(m=>{const p=propose(m);const dev=Math.max(Math.abs(dPct(m.ss,p.ss)),Math.abs(dPct(m.min,p.min)),Math.abs(dPct(m.max,p.max)));return{m,p,dev,flag:dev>=s.threshold}});
+  if(only)rows=rows.filter(r=>r.flag);
+  rows.sort((a,b)=>b.dev-a.dev);
+  document.getElementById("revT").innerHTML=`<tr><th data-cap="review"><input type="checkbox" id="rAll"></th><th>Code</th><th>Material</th><th>Class</th><th class="n">SL %</th><th class="n">Z</th><th class="n">Avg d/day</th><th class="n">CV</th><th class="n">LT ± σ</th><th class="n">EOQ</th><th class="n">Safety stock</th><th class="n">Min (ROP)</th><th class="n">Max</th><th>Flag</th><th>Last review</th></tr>`+
+  rows.map(({m,p,dev,flag})=>`<tr><td data-cap="review"><input type="checkbox" data-rs="${esc(m.code)}" ${revSel.has(m.code)?"checked":""}></td><td><b>${esc(m.code)}</b></td><td>${esc(m.name)}</td><td>${m._abc}${m._xyz}</td><td class="n">${serviceLevel(m)}</td><td class="n">${fmt(p.z,2)}</td><td class="n">${fmt(p.d,2)}</td><td class="n">${fmt(p.cv,2)}</td><td class="n">${m.leadTime} ± ${m.ltStd}</td><td class="n">${fmt(p.eoq)}</td>
+  ${cell(m.ss,p.ss)}${cell(m.min,p.min)}${cell(m.max,p.max)}
+  <td>${flag?`<span class="pill p-warn">Δ ${fmt(dev)}%</span>`:'<span class="pill p-ok">Aligned</span>'}${m._xyz==="Z"?' <span class="pill p-info">Erratic – judge</span>':""}</td><td>${m.lastReview||"–"}</td></tr>`).join("");
+}
+
+/* ================= RENDER: ORDERING ================= */
+let ordQty={},ordSel=new Set();
+function suggestions(){
+  const incl=document.getElementById("oInclLow").checked;
+  return S.materials.filter(buOK).map(m=>({m,c:calc(m)})).filter(x=>x.c.st!=="DEAD"&&x.c.pos<=x.m.min*(incl?1.1:1)).map(x=>{
+    const q=ceilTo(Math.max(x.m.max-x.c.pos,x.m.moq),x.m.moq);
+    const ttz=x.c.d>0?Math.max(0,x.c.avail)/x.c.d:Infinity;
+    const urg=ttz<x.m.leadTime?["Expedite","p-bad"]:ttz<x.m.leadTime*1.5?["Order today","p-warn"]:["Normal","p-ok"];
+    return{...x,q,ttz,urg};
+  }).sort((a,b)=>a.ttz-b.ttz);
+}
+function renderOrd(){
+  const rows=suggestions();
+  let tot=0;
+  document.getElementById("ordT").innerHTML=`<tr><th data-cap="po"><input type="checkbox" id="oAll"></th><th>Code</th><th>Material</th><th>BU</th><th>Supplier</th><th class="n">Position</th><th class="n">Min</th><th class="n">Max</th><th class="n">MOQ</th><th class="n">Order qty</th><th class="n">Value</th><th class="n">Days to zero</th><th class="n">Lead time</th><th>Urgency</th><th>Expected arrival</th></tr>`+
+  (rows.map(r=>{const q=ordQty[r.m.code]??r.q,v=q*r.m.unitCost;if(ordSel.has(r.m.code))tot+=v;
+    return`<tr><td data-cap="po"><input type="checkbox" data-os="${esc(r.m.code)}" ${ordSel.has(r.m.code)?"checked":""}></td><td><b>${esc(r.m.code)}</b></td><td>${esc(r.m.name)}</td><td>${r.m.bu}</td><td>${esc(r.m.supplier)}</td><td class="n">${fmt(r.c.pos)}</td><td class="n">${fmt(r.m.min)}</td><td class="n">${fmt(r.m.max)}</td><td class="n">${fmt(r.m.moq)}</td>
+    <td class="n">${CAN.po?`<input type="number" min="0" step="${r.m.moq}" value="${q}" data-oq="${esc(r.m.code)}">`:fmt(q)}</td><td class="n">${fmt(v)}</td><td class="n">${r.ttz===Infinity?"∞":fmt(r.ttz)}</td><td class="n">${r.m.leadTime} d</td><td><span class="pill ${r.urg[1]}">${r.urg[0]}</span></td><td>${addDays(today(),r.m.leadTime)}</td></tr>`}).join("")||`<tr><td colspan="15" class="muted">No replenishment needed right now.</td></tr>`)+
+  (rows.length&&CAN.po?`<tr><td colspan="10" class="n"><b>Selected total</b></td><td class="n"><b>${fmt(tot)}</b></td><td colspan="4"></td></tr>`:"");
+}
+
+/* ================= RENDER: PO ================= */
+const poVal=p=>p.lines.reduce((s,l)=>s+l.qty*l.cost,0);
+function renderPO(){
+  const f=document.getElementById("poStatus").value;
+  const list=S.pos.filter(p=>!f||p.status===f);
+  const open=S.pos.filter(p=>["Draft","Approved","Sent"].includes(p.status));
+  document.getElementById("poSum").textContent=`${open.length} open POs · ${money(open.reduce((s,p)=>s+poVal(p),0))}`;
+  const cls={Draft:"p-mut",Approved:"p-info",Sent:"p-warn",Received:"p-ok",Cancelled:"p-bad"};
+  const next={Draft:"Approve",Approved:"Mark sent",Sent:"Receive"};
+  document.getElementById("poT").innerHTML=`<tr><th>PO #</th><th>Created</th><th>Supplier</th><th>Lines</th><th class="n">Value</th><th>ETA</th><th>Status</th><th></th></tr>`+
+  (list.map(p=>{const late=p.status==="Sent"&&p.eta<today();
+    return`<tr><td><b>${p.id}</b></td><td>${p.date}</td><td>${esc(p.supplier)}</td><td style="white-space:normal;min-width:240px">${p.lines.map(l=>`${esc(l.code)} × ${fmt(l.qty)}`).join("<br>")}</td><td class="n">${fmt(poVal(p))}</td><td>${p.eta}${late?' <span class="pill p-bad">Late</span>':""}</td><td><span class="pill ${cls[p.status]}">${p.status}</span></td>
+    <td>${next[p.status]?`<button class="btn sm primary" data-cap="po" data-pa="${p.id}">${next[p.status]}</button> `:""}${["Draft","Approved","Sent"].includes(p.status)?`<button class="btn sm danger" data-cap="po" data-pc="${p.id}">Cancel</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="8" class="muted">No purchase orders yet. Create them from the Ordering tab.</td></tr>`);
+}
+function renderLog(){document.getElementById("logT").innerHTML=`<tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th></tr>`+S.log.slice(0,500).map(l=>`<tr><td>${l.ts}</td><td>${esc(l.user)}</td><td>${esc(l.action)}</td><td style="white-space:normal">${esc(l.detail)}</td></tr>`).join("")}
+
+/* ================= SETTINGS ================= */
+const SETF=[["slA","Service level – A items (%)"],["slB","Service level – B items (%)"],["slC","Service level – C items (%)"],["reviewEvery","Parameter review frequency (days)"],["reviewPeriod","Order review cycle (days)"],["orderCost","Ordering cost per PO (S)"],["holdPct","Holding cost (% of unit cost / yr)"],["threshold","Flag change above (%)"],["overDays","Overstock if cover exceeds (days)"],["daysPerMonth","Working days per month"],["currency","Currency"]];
+function renderSet(){document.getElementById("setForm").innerHTML=SETF.map(([k,l])=>`<label>${l}<input id="s_${k}" ${k==="currency"?"":'type="number" step="any"'} value="${esc(S.settings[k])}" ${CAN.settings?"":"disabled"}></label>`).join("")}
+
+/* ================= ACTIONS ================= */
+function renderAll(){migrate();classify();renderDash();renderIM();renderMat();renderMM();renderMV();renderRev();renderOrd();renderPO();renderLog();renderUp();renderNav();save();renderSync()}
+const NAVKEY=KEY+"_page";
+function go(t){if(!PAGES[t])t="dash";
+  document.querySelectorAll("#nav button[data-t]").forEach(b=>{const on=b.dataset.t===t;b.classList.toggle("active",on);on?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current")});
+  document.querySelectorAll(".tab").forEach(s=>s.classList.toggle("active",s.id==="t-"+t));
+  document.getElementById("pgTitle").textContent=PAGES[t][0];document.getElementById("pgSub").textContent=PAGES[t][1];
+  document.body.classList.remove("navopen");try{localStorage.setItem(NAVKEY,t)}catch(e){}window.scrollTo(0,0)}
+document.getElementById("nav").onclick=e=>{const b=e.target.closest("button[data-t]");if(b)go(b.dataset.t)};
+document.getElementById("scrim").onclick=()=>document.body.classList.remove("navopen");
+document.getElementById("navBtn").onclick=()=>{if(matchMedia("(max-width:900px)").matches)document.body.classList.toggle("navopen");
+  else{document.body.classList.toggle("collapsed");try{localStorage.setItem(KEY+"_collapsed",document.body.classList.contains("collapsed")?"1":"")}catch(e){}}};
+try{if(localStorage.getItem(KEY+"_collapsed"))document.body.classList.add("collapsed")}catch(e){}
+
+function dialog(title,fields,onOk,okLabel="Save",opt={}){
+  document.getElementById("dlgH").textContent=title;const okB=document.getElementById("dlgOk");okB.textContent=okLabel;okB.disabled=false;
+  document.getElementById("dlgB").innerHTML=fields.map(f=>f.html!==undefined?`<div class="${f.wide?"full":""}">${f.html}</div>`:`<label style="${f.wide?"grid-column:1/-1":""}">${f.l}${f.opts?`<select name="${f.k}">${f.opts.map(o=>`<option value="${esc(o[0])}" ${o[0]==f.v?"selected":""}>${esc(o[1])}</option>`).join("")}</select>`:`<input name="${f.k}" ${f.t?`type="${f.t}" step="any"`:""} value="${esc(f.v??"")}" ${f.ro?"readonly":""} ${f.req?"required":""}>`}</label>`).join("");
+  const d=document.getElementById("dlg");d.className=opt.wide?"wide":"";d.returnValue="";d.showModal();
+  if(opt.after)opt.after(d);
+  d.onclose=()=>{if(d.returnValue==="ok"){const fd=new FormData(document.getElementById("dlgForm")),o={};fd.forEach((v,k)=>{if(typeof v==="string")o[k]=v});onOk(o,fd)}};
+}
+function editMat(code){
+  if(!need(code?"edit":"create"))return;
+  const m=code?byCode(code):Object.assign(blankMat(),{ltStd:2,hist:[0,0,0,0,0,0]});
+  let photo=safeImg(m.photo),usage=usageOf(m);
+  const secs=new Set(m.sectors&&m.sectors.length?m.sectors:[m.bu]);
+  const phHtml=`<div class="ph"><span id="phPrev"></span><div><div class="muted" style="font-size:12px;margin-bottom:6px">Material photo · auto-resized to keep the file light</div>
+    <button type="button" class="btn sm" id="phPick">Upload / take photo</button> <button type="button" class="btn sm danger" id="phDel">Remove photo</button><input type="file" id="phIn" accept="image/*" hidden></div></div>`;
+  const usHtml=`<div class="muted" style="font-size:12px">Sector usage</div>
+    <div class="seg" id="usSeg" style="margin-top:6px"><button type="button" data-u="single">One sector only</button><button type="button" data-u="multi">Many sectors (shared)</button></div>
+    <div class="secbox" id="secBox">${Object.entries(BUS).map(([k,v])=>`<label><input type="checkbox" name="sec" value="${k}" ${secs.has(k)?"checked":""}> ${esc(v)}</label>`).join("")}
+      <button type="button" class="btn sm" id="secAll">All 4 sectors</button></div>
+    <div class="help" id="usHelp" style="margin-top:6px"></div>`;
+  dialog(code?"Edit "+code:"New material",[
+    {html:phHtml,wide:1},
+    {k:"code",l:"Material code",v:m.code,ro:!!code,req:1},{k:"name",l:"Description",v:m.name,req:1},
+    {k:"bu",l:"Owner business unit",v:m.bu,opts:Object.entries(BUS)},{k:"category",l:"Category",v:m.category},
+    {k:"uom",l:"Unit of measure",v:m.uom},{k:"supplier",l:"Main supplier",v:m.supplier},
+    {k:"unitCost",l:"Unit cost",v:m.unitCost,t:"number"},{k:"moq",l:"MOQ / pack size",v:m.moq,t:"number"},
+    {k:"leadTime",l:"Lead time (days)",v:m.leadTime,t:"number"},{k:"ltStd",l:"Lead time std-dev (days)",v:m.ltStd,t:"number"},
+    {k:"onHand",l:"On hand",v:m.onHand,t:"number"},{k:"reserved",l:"Reserved / allocated",v:m.reserved,t:"number"},
+    {k:"ss",l:"Safety stock (current)",v:m.ss,t:"number"},{k:"min",l:"Min (current)",v:m.min,t:"number"},{k:"max",l:"Max (current)",v:m.max,t:"number"},
+    {html:usHtml,wide:1},
+    {k:"hist",l:"Monthly consumption, oldest → newest (separate with ;)",v:m.hist.join(";"),wide:1}],(o,fd)=>{
+      const num=["unitCost","moq","leadTime","ltStd","onHand","reserved","ss","min","max"];num.forEach(k=>o[k]=Math.max(0,Number(o[k])||0));
+      o.code=String(o.code||"").trim();o.moq=Math.max(1,o.moq);o.hist=String(o.hist).split(/[;,\s]+/).filter(Boolean).map(Number).filter(isFinite);
+      if(!o.hist.length)o.hist=[0];
+      o.sectors=usage==="single"?[o.bu]:[...new Set([o.bu,...fd.getAll("sec")])].filter(s=>BUS[s]);
+      o.usage=o.sectors.length>1?"multi":"single";o.photo=photo;delete o.sec;
+      if(!code){if(!o.code)return toast("Material code is required");if(byCode(o.code))return toast("Code already exists");
+        S.materials.push(Object.assign(m,o,{onOrder:0}));
+        if(!o.min&&!o.max){classify();const p=propose(m);Object.assign(m,{ss:p.ss,min:p.min,max:p.max})}
+        log("Planner","Material created",`${o.code} · sectors ${o.sectors.join(", ")}`)}
+      else{const before=m.sectors.join(",");Object.assign(m,o);log("Planner","Material edited",code+(before!==o.sectors.join(",")?` · sectors ${before} → ${o.sectors.join(", ")}`:""))}
+      renderAll();toast("Saved");
+    },"Save",{after:d=>{
+      const $=s=>d.querySelector(s),owner=$('[name="bu"]');
+      const drawPh=()=>{$("#phPrev").innerHTML=photo?`<img class="thumb" src="${photo}" alt="">`:`<span class="thumb empty">📷</span>`;$("#phDel").disabled=!photo};
+      const paint=()=>{d.querySelectorAll("#usSeg button").forEach(b=>b.classList.toggle("on",b.dataset.u===usage));
+        $("#secBox").style.display=usage==="multi"?"flex":"none";
+        if(usage==="multi")$(`[name="sec"][value="${owner.value}"]`).checked=true;
+        $("#usHelp").textContent=usage==="single"?`Used only by ${BUS[owner.value]}.`:"Tick every BU that consumes this material. The owner BU is always included and carries the budget; the material appears in each ticked BU's view."};
+      $("#usSeg").onclick=e=>{if(e.target.dataset.u!==undefined){usage=e.target.dataset.u;paint()}};
+      $("#secAll").onclick=()=>{d.querySelectorAll('[name="sec"]').forEach(c=>c.checked=true)};
+      owner.onchange=paint;
+      $("#phPick").onclick=()=>$("#phIn").click();
+      $("#phIn").onchange=e=>{resizeImage(e.target.files[0]).then(u=>{photo=u;drawPh()}).catch(()=>toast("Could not read that image"));e.target.value=""};
+      $("#phDel").onclick=()=>{photo="";drawPh()};
+      drawPh();paint();
+    }});
+}
+function delMats(codes){
+  if(!need("del"))return;
+  codes=codes.filter(byCode);if(!codes.length)return;
+  const open=S.pos.filter(p=>["Draft","Approved","Sent"].includes(p.status)&&p.lines.some(l=>codes.includes(l.code)));
+  const what=codes.length===1?`${codes[0]} – ${byCode(codes[0]).name}`:`${codes.length} materials`;
+  if(!confirm(`Delete ${what}?${open.length?`\n\nWarning: referenced on open PO(s) ${open.map(p=>p.id).join(", ")}. The POs stay, but receipts will no longer update stock.`:""}\n\nThis cannot be undone (keep a JSON backup if unsure).`))return;
+  S.materials=S.materials.filter(m=>!codes.includes(m.code));codes.forEach(c=>{matSel.delete(c);revSel.delete(c);ordSel.delete(c)});
+  log("Planner","Material deleted",codes.join(", "));renderAll();toast(`${codes.length} material(s) deleted`);
+}
+function lightbox(code){const m=byCode(code),u=safeImg(m&&m.photo);if(!u)return;const lb=document.getElementById("lb");lb.querySelector("img").src=u;lb.querySelector("div").textContent=`${m.code} · ${m.name}`;lb.classList.add("on")}
+document.getElementById("lb").onclick=e=>e.currentTarget.classList.remove("on");
+function movement(code){
+  if(!need("move"))return;
+  const m=byCode(code);
+  dialog("Stock movement – "+code,[{k:"type",l:"Movement type",v:"issue",opts:[["issue","Issue / consumption (−)"],["receipt","Receipt without PO (+)"],["return","Return to stock (+)"],["scrap","Scrap / damage (−)"],["adjust","Cycle count – set counted qty"],["reserve","Set reserved qty"]]},
+    {k:"qty",l:"Quantity",v:"",t:"number",req:1},{k:"ref",l:"Reference / reason",v:"",wide:1}],o=>{
+    const d=postMove(m,o.type,o.qty,o.ref);renderAll();toast(d);
+  },"Post");
+}
+
+// table delegation
+document.getElementById("matT").onclick=e=>{const t=e.target;if(t.dataset.mv)movement(t.dataset.mv);if(t.dataset.ed)editMat(t.dataset.ed);
+  if(t.dataset.ph)lightbox(t.dataset.ph);
+  const s=t.closest("th")?.dataset.sort;if(s){mSort.dir=mSort.k===s?-mSort.dir:1;mSort.k=s;renderMat()}};
+document.getElementById("mUse").onclick=e=>{const u=e.target.dataset.u;if(u===undefined)return;mUse=u;document.querySelectorAll("#mUse button").forEach(b=>b.classList.toggle("on",b.dataset.u===u));renderMat()};
+// item master
+document.getElementById("imT").onclick=e=>{const t=e.target;if(t.dataset.ed)editMat(t.dataset.ed);if(t.dataset.del)delMats([t.dataset.del]);if(t.dataset.dup)dupItem(t.dataset.dup);if(t.dataset.ph)lightbox(t.dataset.ph);
+  const s=t.closest("th")?.dataset.isort;if(s){imSort.dir=imSort.k===s?-imSort.dir:1;imSort.k=s;renderIM()}};
+document.getElementById("imT").onchange=e=>{const t=e.target;
+  if(t.id==="msAll")document.querySelectorAll("[data-ms]").forEach(c=>t.checked?matSel.add(c.dataset.ms):matSel.delete(c.dataset.ms));
+  else if(t.dataset.ms)t.checked?matSel.add(t.dataset.ms):matSel.delete(t.dataset.ms);
+  renderIM()};
+["imSearch","imCat","imSup","imGaps"].forEach(i=>document.getElementById(i).oninput=renderIM);
+document.getElementById("imGaps").onchange=renderIM;
+document.getElementById("imUse").onclick=e=>{const u=e.target.dataset.u;if(u===undefined)return;imUse=u;document.querySelectorAll("#imUse button").forEach(b=>b.classList.toggle("on",b.dataset.u===u));renderIM()};
+document.getElementById("delSel").onclick=()=>delMats([...matSel]);
+document.getElementById("addMat").onclick=()=>editMat(null);
+// min / max
+document.getElementById("mmT").oninput=e=>{const t=e.target;if(!t.dataset.mm)return;const m=byCode(t.dataset.mm),k=t.dataset.k,v=Math.max(0,Math.round(Number(t.value)||0));
+  const ed=mmEdits[m.code]=mmEdits[m.code]||{};if(v===m[k])delete ed[k];else ed[k]=v;if(!Object.keys(ed).length)delete mmEdits[m.code];
+  t.classList.toggle("dirty",ed[k]!==undefined);
+  const tr=t.closest("tr"),c=calc(m),err=mmBad(mmVal(m,"ss"),mmVal(m,"min"),mmVal(m,"max"));
+  tr.classList.toggle("bad",!!err);tr.querySelector(`[data-dk="${k}"]`).textContent=c.d>0?fmt(v/c.d):"–";tr.querySelector("[data-stc]").innerHTML=mmStatus(m,c,err);mmHeader()};
+document.getElementById("mmT").onchange=e=>{const t=e.target;
+  if(t.id==="mmAll")document.querySelectorAll("[data-mms]").forEach(c=>t.checked?mmSel.add(c.dataset.mms):mmSel.delete(c.dataset.mms));
+  else if(t.dataset.mms)t.checked?mmSel.add(t.dataset.mms):mmSel.delete(t.dataset.mms);else return;renderMM()};
+["mmSearch","mmFlt"].forEach(i=>document.getElementById(i).oninput=renderMM);
+document.getElementById("mmDiscard").onclick=()=>{mmEdits={};renderMM();toast("Changes discarded")};
+document.getElementById("mmUseProp").onclick=()=>{if(!need("minmax"))return;if(!mmSel.size)return toast("Tick the rows first");
+  mmSel.forEach(c=>{const m=byCode(c);if(!m)return;const p=propose(m),ed={};["ss","min","max"].forEach(k=>{if(p[k]!==m[k])ed[k]=p[k]});if(Object.keys(ed).length)mmEdits[c]=ed;else delete mmEdits[c]});
+  renderMM();toast("Proposal filled in – review and Save")};
+document.getElementById("mmSave").onclick=()=>{if(!need("minmax"))return;let n=0,skip=0;
+  Object.entries(mmEdits).forEach(([c,ed])=>{const m=byCode(c);if(!m)return;const ss=ed.ss??m.ss,mn=ed.min??m.min,mx=ed.max??m.max;
+    if(mmBad(ss,mn,mx)){skip++;return}
+    log("Planner","Min/Max changed "+c,`SS ${m.ss}→${ss}, Min ${m.min}→${mn}, Max ${m.max}→${mx}`);Object.assign(m,{ss,min:mn,max:mx,lastReview:today()});delete mmEdits[c];n++});
+  mmSel.clear();renderAll();toast(`${n} item(s) saved${skip?` · ${skip} invalid kept for correction`:""}`)};
+// movements
+document.getElementById("mvItem").oninput=mvInfo;
+document.getElementById("mvForm").onsubmit=e=>{e.preventDefault();if(!need("move"))return;const m=mvItemOf();if(!m)return toast("Pick a material from the list");
+  const q=document.getElementById("mvQty").value;if(q===""||Number(q)<0)return toast("Enter a quantity");
+  const d=postMove(m,document.getElementById("mvType").value,q,document.getElementById("mvRef").value.trim());
+  document.getElementById("mvQty").value="";document.getElementById("mvRef").value="";renderAll();toast(`${m.code}: ${d}`)};
+["mvSearch","mvFType","mvFrom","mvTo"].forEach(i=>document.getElementById(i).oninput=renderMV);
+document.getElementById("mvCsv").onclick=()=>dl("nacita_stock_movements_"+today()+".csv",["date,code,description,type,qty,stock_before,stock_after,reference,user"].concat((S.moves||[]).map(x=>[x.ts,x.code,byCode(x.code)?.name||"",(MVT[x.type]||[x.type])[0],x.qty,x.before,x.after,x.ref,x.user].map(csvCell).join(","))).join("\n"),"text/csv");
+
+/* ================= MASS UPLOAD ================= */
+const MCOLS=["code","name","bu","sectors","category","uom","supplier","unitCost","leadTime","ltStd","moq","onHand","onOrder","reserved","ss","min","max","hist"];
+const MNUM=["unitCost","leadTime","ltStd","moq","onHand","onOrder","reserved","ss","min","max"];
+const ALIAS={description:"name",materialname:"name",material:"name",materialcode:"code",sku:"code",itemcode:"code",owner:"bu",ownerbu:"bu",businessunit:"bu",sector:"sectors",usedby:"sectors",cost:"unitCost",price:"unitCost",unitprice:"unitCost",lt:"leadTime",leadtimedays:"leadTime",ltstddev:"ltStd",stock:"onHand",qty:"onHand",onhandqty:"onHand",safetystock:"ss",minimum:"min",maximum:"max",history:"hist",consumption:"hist",unit:"uom"};
+const normH=h=>{const s=String(h??"").toLowerCase().trim();const mm=s.match(/^(?:m|month|hist|consumption)\s*[_\-]?\s*(\d{1,2})\b/);if(mm)return"hist#"+Number(mm[1]);
+  const k=s.replace(/[^a-z]/g,"");const c=MCOLS.find(x=>x.toLowerCase()===k);return c||ALIAS[k]||null};
+function textRows(text){const t=(text||"").replace(/^﻿/,"");if(!t.trim())return[];const first=t.split(/\r?\n/)[0],d=first.includes("\t")?"\t":first.includes(",")?",":";";return parseCSV(t,d)}
+/* ---- Excel (SheetJS, loaded on first use) ---- */
+let _xl;
+function ensureXLSX(){if(window.XLSX)return Promise.resolve(window.XLSX);if(_xl)return _xl;
+  _xl=new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload=()=>window.XLSX?res(window.XLSX):(_xl=null,rej(new Error("load")));s.onerror=()=>{_xl=null;s.remove();rej(new Error("load"))};document.head.appendChild(s)});return _xl}
+const INSTR=[["code","Yes","Unique material code. Rows starting with # are ignored.","WH-CLN-010"],
+  ["name","Yes (new)","Material description.","Floor cleaner 5L"],
+  ["bu","Yes (new)","Owner business unit (carries the budget): WH, LM, FT, IOR – or the full name.","WH"],
+  ["sectors","No","Every BU that uses the material, separated by ; – or ALL. Blank = single sector (owner only).","WH;LM;IOR"],
+  ["category","No","E.g. MRO, Packaging, Cleaning, Hospitality, PPE, Tyres, Labels.","Cleaning"],
+  ["uom","No","Unit of measure.","Can"],["supplier","No","Main supplier.","Clean Co."],
+  ["unitCost","No","Cost per unit of measure (EGP).","185"],["leadTime","No","Supplier lead time in days.","7"],
+  ["ltStd","No","Lead-time variability (std-dev, days). Use 20–30% of lead time if unknown.","2"],
+  ["moq","No","Minimum order qty / pack size; orders are rounded up to it.","4"],
+  ["onHand","No","Current stock on hand.","40"],["onOrder","No","Qty already ordered, not received.","0"],["reserved","No","Qty allocated / reserved.","0"],
+  ["ss","No","Safety stock. Leave blank on new items to auto-calculate.",""],["min","No","Min / reorder point. Blank = auto-calculate.",""],["max","No","Max / order-up-to level. Blank = auto-calculate.",""],
+  ["M1 (oldest) … M6 (latest)","Recommended","Monthly consumption, oldest month first. Add M7…M24 columns for longer history. Drives SS / Min / Max.","30 | 34 | 28 | 36 | 31 | 33"]];
+async function buildXlsx(withData){
+  const X=await ensureXLSX(),wb=X.utils.book_new();
+  const nM=withData?Math.min(24,Math.max(6,...S.materials.map(m=>(m.hist||[]).length))):6;
+  const months=Array.from({length:nM},(_,i)=>`M${i+1}${i===0?" (oldest)":i===nM-1?" (latest)":""}`);
+  const base=MCOLS.filter(c=>c!=="hist"),head=[...base,...months];
+  const rowOf=m=>{const h=(m.hist||[]).slice(-nM);return[...base.map(c=>c==="sectors"?(m.sectors||[]).join(";"):(m[c]??"")),...Array(nM-h.length).fill(""),...h]};
+  const sheet=(rows,widths)=>{const ws=X.utils.aoa_to_sheet(rows);ws["!cols"]=widths;return ws};
+  const wid=head.map(h=>({wch:h==="name"?34:h==="supplier"?22:h==="sectors"?14:Math.max(9,h.length+3)}));
+  const data=withData?S.materials.map(rowOf):[];
+  const ws=sheet([head,...data],wid);ws["!autofilter"]={ref:X.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(1,data.length),c:head.length-1}})};
+  X.utils.book_append_sheet(wb,ws,"Materials");
+  if(!withData){
+    X.utils.book_append_sheet(wb,sheet([head,
+      ["WH-CLN-010","Floor cleaner 5L","WH","WH;LM;IOR","Cleaning","Can","Clean Co.",185,7,2,4,40,0,0,"","","",30,34,28,36,31,33],
+      ["FT-MRO-011","Grease cartridge 400g","FT","","MRO","Pc","Lubricants Supplier",140,10,3,12,60,0,0,20,45,120,40,38,45,50,42,44],
+      ["IOR-HSP-012","Drinking water 330ml (carton x24)","IOR","ALL","Hospitality","Carton","Water Supplier Co.",145,3,1,10,25,0,0,"","","",55,60,58,62,65,70],
+      ["LM-PKG-013","Bubble wrap roll 1m x 100m","LM","LM;WH","Packaging","Roll","El Nour Plastics",520,7,2,5,18,0,0,"","","",14,16,12,19,15,17]],wid),"Example");
+  }
+  X.utils.book_append_sheet(wb,sheet([["Column","Required?","Description / allowed values","Example"],...INSTR,[],
+    ["How to use","","1) Fill the Materials sheet, one row per material (copy rows from the Example sheet if useful). 2) Save as .xlsx. 3) In the Control Tower choose Mass upload (Excel), pick the file, check the preview, then Import.",""],
+    ["Updating","","Choose “Add new + update existing”: blank cells keep their current values, filled cells overwrite.",""]],
+    [{wch:24},{wch:12},{wch:90},{wch:26}]),"Instructions");
+  X.utils.book_append_sheet(wb,sheet([["BU code","Business unit"],...Object.entries(BUS)],[{wch:10},{wch:26}]),"BU codes");
+  return X.write(wb,{bookType:"xlsx",type:"array",compression:true});
+}
+const XLSX_MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+async function dlTemplate(){try{toast("Preparing Excel template…");await dl("Nacita_Material_Upload_Template.xlsx",await buildXlsx(false),XLSX_MIME)}catch(e){toast("Excel library could not load – check the internet connection")}}
+async function dlCurrent(){try{toast("Preparing Excel export…");await dl(`Nacita_Materials_${today()}.xlsx`,await buildXlsx(true),XLSX_MIME)}catch(e){toast("Excel library could not load – check the internet connection")}}
+const BU_BY_NAME=Object.fromEntries(Object.entries(BUS).flatMap(([k,v])=>[[k.toLowerCase(),k],[v.toLowerCase(),k],[v.toLowerCase().split(" ")[0],k]]));
+const toBU=v=>BU_BY_NAME[String(v||"").trim().toLowerCase()]||null;
+function analyzeUpload(src,mode){
+  let rows=(Array.isArray(src)?src:textRows(src)).map(r=>(r||[]).map(c=>c==null?"":String(c)));
+  rows=rows.map((r,i)=>Object.assign(r,{_line:i+1})).filter(r=>r.some(c=>c.trim()));
+  if(!rows.length)return{err:"",items:[]};
+  const hi=rows.slice(0,10).findIndex(r=>r.map(normH).includes("code"));
+  if(hi<0)return{err:"No header row with a “code” column found (use the template’s Materials sheet).",items:[]};
+  const hdr=rows[hi].map(normH);rows=rows.slice(hi+1);
+  const seen=new Set();
+  const items=rows.map(r=>{
+    const o={},given={},warn=[];hdr.forEach((k,j)=>{if(k&&r[j]!==undefined&&String(r[j]).trim()!=="")given[k]=String(r[j]).trim()});
+    const it={line:r._line,code:given.code||"",name:given.name||"",obj:o,warn};
+    if(/^#/.test(it.code))return Object.assign(it,{status:"Skip",msg:"Comment row"});
+    if(!it.code)return Object.assign(it,{status:"Error",msg:"Missing code"});
+    const mk=Object.keys(given).filter(k=>k.startsWith("hist#")).sort((a,b)=>a.slice(5)-b.slice(5));
+    if(mk.length&&given.hist===undefined){const v=mk.map(k=>Number(given[k].replace(/[\s,]/g,""))).filter(isFinite);if(v.length)o.hist=v;else warn.push("month columns not numeric")}
+    if(seen.has(it.code))return Object.assign(it,{status:"Error",msg:"Duplicate code in upload"});seen.add(it.code);
+    const ex=byCode(it.code);
+    if(ex&&mode==="add")return Object.assign(it,{status:"Skip",msg:"Already exists",name:it.name||ex.name});
+    for(const k of MNUM)if(given[k]!==undefined){const n=Number(given[k].replace(/[\s,]/g,""));if(!isFinite(n))return Object.assign(it,{status:"Error",msg:`${k} is not a number`});o[k]=Math.max(0,n)}
+    if(given.bu!==undefined){const b=toBU(given.bu);if(!b)return Object.assign(it,{status:"Error",msg:`Unknown BU “${given.bu}”`});o.bu=b}
+    if(given.sectors!==undefined){const parts=given.sectors.split(/[;|,\/]+/).map(s=>s.trim()).filter(Boolean);
+      if(/^all$/i.test(given.sectors.trim()))o.sectors=Object.keys(BUS);else{o.sectors=parts.map(toBU).filter(Boolean);parts.filter(p=>!toBU(p)).forEach(p=>warn.push(`ignored sector “${p}”`))}}
+    ["code","name","category","uom","supplier"].forEach(k=>{if(given[k]!==undefined)o[k]=given[k]});
+    if(given.hist!==undefined){o.hist=given.hist.split(/[;|\/\s]+/).map(Number).filter(isFinite);if(!o.hist.length)delete o.hist}
+    if(o.moq!==undefined)o.moq=Math.max(1,o.moq);
+    if(!ex){if(!o.name)return Object.assign(it,{status:"Error",msg:"Name required for new material"});
+      if(!o.bu&&!(o.sectors&&o.sectors.length))return Object.assign(it,{status:"Error",msg:"Owner BU required (WH, LM, FT, IOR)"});
+      if(!o.bu)o.bu=o.sectors[0];if(o.min===undefined&&o.max===undefined)warn.push("SS/Min/Max auto-calculated");
+      return Object.assign(it,{status:"New",msg:warn.join("; ")})}
+    return Object.assign(it,{status:"Update",msg:[`${Object.keys(o).filter(k=>k!=="code").length} field(s)`,...warn].join("; "),name:it.name||ex.name});
+  });
+  return{err:"",items};
+}
+function massUpload(){
+  if(!need("upload"))return;
+  let mode="add",photos={},srcRows=null;
+  const src=d=>srcRows||d.querySelector("#muText").value;
+  dialog("Mass upload materials from Excel",[{wide:1,html:`
+    <div class="help"><b>1 · Get the Excel template.</b> Fill the <b>Materials</b> sheet, one row per material. Required: <code>code</code>, <code>name</code>, <code>bu</code> (owner: WH, LM, FT, IOR). <code>sectors</code> = every BU using it, e.g. <code>WH;LM</code> or <code>ALL</code> (blank = single sector). Monthly consumption goes in <code>M1 (oldest)</code> … <code>M6 (latest)</code>. Blank SS / Min / Max are calculated automatically. The template also has <b>Example</b>, <b>Instructions</b> and <b>BU codes</b> sheets.</div>
+    <div class="toolbar" style="margin:8px 0 14px"><button type="button" class="btn primary" id="muTplX">⬇ Download Excel template (.xlsx)</button><button type="button" class="btn" id="muCurX" title="Export all current materials in the template layout – edit and re-upload to bulk-update">⬇ Current materials (.xlsx)</button></div>
+    <div class="help"><b>2 · Upload the filled Excel file</b> – .xlsx / .xls; the “Materials” sheet is read (otherwise the first sheet). CSV also accepted.</div>
+    <div class="toolbar" style="margin:8px 0"><button type="button" class="btn primary" id="muFileBtn">📂 Choose Excel file…</button><input type="file" id="muFile" accept=".xlsx,.xlsm,.xls,.ods,.csv,.tsv,.txt" hidden><span class="muted" id="muFname"></span></div>
+    <details style="margin:2px 0 4px"><summary class="muted" style="cursor:pointer;font-size:12px">…or paste cells copied from Excel (include the header row)</summary><textarea id="muText" rows="5" placeholder="Select the cells in Excel, Ctrl+C, then paste here"></textarea></details>
+    <div class="help" style="margin-top:10px"><b>3 · Existing material codes</b></div>
+    <div class="seg" id="muMode" style="margin:6px 0"><button type="button" data-m="add" class="on">Add new only (skip existing)</button><button type="button" data-m="upsert">Add new + update existing</button></div>
+    <div class="help" style="margin-top:10px"><b>4 · Optional – mass photo upload.</b> Select many images at once; each file name must equal the material code (e.g. <code>FT-TYR-001.jpg</code>).</div>
+    <div class="toolbar" style="margin:6px 0"><button type="button" class="btn sm" id="muPhBtn">Choose photos…</button><input type="file" id="muPh" accept="image/*" multiple hidden><span class="muted" id="muPhInfo"></span></div>
+    <div class="help" style="margin-top:10px"><b>Preview</b> <span id="muSum"></span></div>
+    <div class="prev" id="muPrev"><p class="muted" style="padding:8px 10px;margin:0">Choose a file to see the preview.</p></div>`}],
+  ()=>{
+    const {items}=analyzeUpload(srcRows||document.getElementById("muText").value,mode);let n=0,u=0,p=0;const newOnes=[];
+    items.forEach(it=>{if(it.status==="New"){const m=Object.assign(blankMat(),it.obj);if(!it.obj.sectors)m.sectors=[m.bu];S.materials.push(m);newOnes.push([m,it.obj]);n++}
+      else if(it.status==="Update"){Object.assign(byCode(it.code),it.obj);u++}});
+    migrate();classify();
+    newOnes.forEach(([m,o])=>{if(o.min===undefined&&o.max===undefined){const q=propose(m);Object.assign(m,{ss:o.ss??q.ss,min:q.min,max:q.max})}m.lastReview=today()});
+    Object.entries(photos).forEach(([c,url])=>{const m=byCode(c);if(m){m.photo=url;p++}});
+    if(!n&&!u&&!p)return toast("Nothing imported – check the preview");
+    log("Planner","Mass upload (Excel)",`${n} new, ${u} updated, ${p} photo(s)`);renderAll();toast(`${n} new · ${u} updated · ${p} photo(s)`);
+  },"Import",{wide:1,after:d=>{
+    const $=s=>d.querySelector(s);
+    const preview=()=>{const {err,items}=analyzeUpload(src(d),mode);
+      const cnt=s=>items.filter(i=>i.status===s).length,cls={New:"p-ok",Update:"p-info",Skip:"p-mut",Error:"p-bad"};
+      const phCodes=Object.keys(photos),phNote=phCodes.length?` · ${phCodes.length} photo(s) ready`:"";
+      $("#muSum").innerHTML=err?`<span class="pill p-bad">${esc(err)}</span>`:items.length?`<span class="pill p-ok">${cnt("New")} new</span> <span class="pill p-info">${cnt("Update")} update</span> <span class="pill p-mut">${cnt("Skip")} skipped</span> <span class="pill p-bad">${cnt("Error")} error</span>${phNote}`:phNote;
+      $("#muPrev").innerHTML=items.length?`<table><tr><th>Row</th><th>Code</th><th>Name</th><th>Owner</th><th>Sectors</th><th class="n">Months</th><th>Result</th><th>Notes</th></tr>${items.slice(0,300).map(i=>`<tr><td>${i.line}</td><td><b>${esc(i.code)}</b>${photos[i.code]?" 📷":""}</td><td>${esc(i.name)}</td><td>${esc(i.obj.bu||"")}</td><td>${esc((i.obj.sectors||[]).join(", "))}</td><td class="n">${i.obj.hist?i.obj.hist.length:""}</td><td><span class="pill ${cls[i.status]}">${i.status}</span></td><td style="white-space:normal">${esc(i.msg||"")}</td></tr>`).join("")}</table>${items.length>300?`<p class="muted" style="padding:6px 10px">…and ${items.length-300} more rows</p>`:""}`:`<p class="muted" style="padding:8px 10px;margin:0">${err?"":"Choose a file to see the preview."}</p>`;
+      const newCodes=items.filter(i=>i.status==="New").map(i=>i.code);
+      $("#dlgOk").disabled=!(cnt("New")+cnt("Update")+phCodes.filter(c=>byCode(c)||newCodes.includes(c)).length);
+    };
+    let tm;$("#muText").oninput=()=>{srcRows=null;$("#muFname").textContent="";clearTimeout(tm);tm=setTimeout(preview,250)};
+    $("#muMode").onclick=e=>{if(!e.target.dataset.m)return;mode=e.target.dataset.m;d.querySelectorAll("#muMode button").forEach(b=>b.classList.toggle("on",b.dataset.m===mode));preview()};
+    $("#muTplX").onclick=dlTemplate;$("#muCurX").onclick=dlCurrent;
+    $("#muFileBtn").onclick=()=>$("#muFile").click();
+    $("#muFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;$("#muFname").textContent=`Reading ${f.name}…`;
+      try{
+        if(/\.(xlsx|xlsm|xls|ods)$/i.test(f.name)){const X=await ensureXLSX();const wb=X.read(await f.arrayBuffer(),{type:"array"});
+          const sn=wb.SheetNames.find(n=>/^materials$/i.test(n.trim()))||wb.SheetNames[0];
+          srcRows=X.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false,defval:"",blankrows:false});
+          $("#muFname").textContent=`✓ ${f.name} · sheet “${sn}” · ${Math.max(0,srcRows.length-1)} data row(s)`}
+        else{srcRows=textRows(await f.text());$("#muFname").textContent=`✓ ${f.name} · ${Math.max(0,srcRows.length-1)} data row(s)`}
+        $("#muText").value="";preview();
+      }catch(x){srcRows=null;$("#muFname").textContent="";toast(x&&x.message==="load"?"Excel reader could not load – check the internet connection, or upload CSV":"Could not read that file – is it a valid Excel workbook?")}};
+    $("#muPhBtn").onclick=()=>$("#muPh").click();
+    $("#muPh").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;$("#muPhInfo").textContent="Processing…";
+      const pend=analyzeUpload(src(d),mode).items.filter(i=>i.status==="New").map(i=>i.code);let ok=0,miss=[];
+      for(const f of fs){const c=f.name.replace(/\.[^.]+$/,"").trim(),lc=c.toLowerCase();
+        const hit=S.materials.find(m=>m.code.toLowerCase()===lc)?.code||pend.find(x=>x.toLowerCase()===lc);
+        if(!hit){miss.push(f.name);continue}try{photos[hit]=await resizeImage(f);ok++}catch(x){miss.push(f.name)}}
+      $("#muPhInfo").textContent=`${ok} matched${miss.length?` · not matched: ${miss.slice(0,5).join(", ")}${miss.length>5?"…":""}`:""}`;preview()};
+    preview();
+  }});
+}
+document.getElementById("massUp").onclick=massUpload;
+document.getElementById("tplBtn").onclick=dlTemplate;
+document.getElementById("upGo").onclick=massUpload;
+document.getElementById("upCur").onclick=dlCurrent;
+document.getElementById("imExp").onclick=dlCurrent;
+["mSearch","mStatus","mAbc"].forEach(i=>document.getElementById(i).oninput=renderMat);
+document.getElementById("mStatus").innerHTML+=Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join("");
+
+// review
+document.getElementById("revT").onchange=e=>{const t=e.target;
+  if(t.id==="rAll"){document.querySelectorAll("[data-rs]").forEach(c=>{c.checked=t.checked;t.checked?revSel.add(c.dataset.rs):revSel.delete(c.dataset.rs)})}
+  else if(t.dataset.rs){t.checked?revSel.add(t.dataset.rs):revSel.delete(t.dataset.rs)}};
+document.getElementById("rOnlyFlag").onchange=renderRev;
+document.getElementById("rSelFlag").onclick=()=>{if(!need("review"))return;S.materials.filter(buOK).forEach(m=>{const p=propose(m),pc=(a,b)=>a?Math.abs((b-a)/a*100):(b?100:0);if(Math.max(pc(m.ss,p.ss),pc(m.min,p.min),pc(m.max,p.max))>=S.settings.threshold)revSel.add(m.code)});renderRev()};
+document.getElementById("rApprove").onclick=()=>{if(!need("review"))return;
+  if(!revSel.size)return toast("Select materials first");
+  revSel.forEach(c=>{const m=byCode(c);if(!m)return;const p=propose(m);
+    log("Planner","Parameters approved "+c,`SS ${m.ss}→${p.ss}, Min ${m.min}→${p.min}, Max ${m.max}→${p.max}`);
+    Object.assign(m,{ss:p.ss,min:p.min,max:p.max,lastReview:today()})});
+  toast(`${revSel.size} materials updated`);revSel.clear();renderAll();
+};
+document.getElementById("rComplete").onclick=()=>{if(!need("review"))return;if(!confirm("Mark the periodic review as completed today?"))return;S.lastReviewDate=today();log("Planner","Periodic review completed","Next due "+addDays(today(),S.settings.reviewEvery));renderAll();toast("Review closed")};
+
+// ordering
+document.getElementById("ordT").onchange=e=>{const t=e.target;
+  if(t.id==="oAll"){document.querySelectorAll("[data-os]").forEach(c=>t.checked?ordSel.add(c.dataset.os):ordSel.delete(c.dataset.os))}
+  else if(t.dataset.os){t.checked?ordSel.add(t.dataset.os):ordSel.delete(t.dataset.os)}
+  else if(t.dataset.oq){ordQty[t.dataset.oq]=Math.max(0,Number(t.value)||0)}
+  renderOrd()};
+document.getElementById("oInclLow").onchange=renderOrd;
+document.getElementById("oCreate").onclick=()=>{if(!need("po"))return;
+  const rows=suggestions().filter(r=>ordSel.has(r.m.code));
+  if(!rows.length)return toast("Select lines to order");
+  const g={};rows.forEach(r=>{const q=ordQty[r.m.code]??r.q;if(q>0)(g[r.m.supplier]=g[r.m.supplier]||[]).push({code:r.m.code,qty:q,cost:r.m.unitCost,lt:r.m.leadTime})});
+  Object.entries(g).forEach(([sup,lines])=>{
+    const id="PO-"+new Date().getFullYear()+"-"+String(S.poSeq++).padStart(4,"0");
+    S.pos.unshift({id,date:today(),supplier:sup,lines:lines.map(({code,qty,cost})=>({code,qty,cost})),status:"Draft",eta:addDays(today(),Math.max(...lines.map(l=>l.lt)))});
+    lines.forEach(l=>byCode(l.code).onOrder+=l.qty);
+    log("Planner","PO created "+id,`${sup}: ${lines.map(l=>l.code+"×"+l.qty).join(", ")}`);
+  });
+  toast(`${Object.keys(g).length} draft PO(s) created`);ordSel.clear();ordQty={};renderAll();go("po");
+};
+
+// PO actions
+document.getElementById("poStatus").onchange=renderPO;
+document.getElementById("poT").onclick=e=>{const t=e.target,id=t.dataset.pa||t.dataset.pc;if(!id||!need("po"))return;const p=S.pos.find(x=>x.id===id);
+  if(t.dataset.pc){if(!confirm("Cancel "+id+"?"))return;p.status="Cancelled";p.lines.forEach(l=>{const m=byCode(l.code);if(m)m.onOrder=Math.max(0,m.onOrder-l.qty)});log("Buyer","PO cancelled",id)}
+  else if(p.status==="Draft"){p.status="Approved";log("Manager","PO approved",id)}
+  else if(p.status==="Approved"){p.status="Sent";p.sent=today();log("Buyer","PO sent to supplier",id)}
+  else if(p.status==="Sent"){
+    dialog("Receive "+id,p.lines.map(l=>({k:l.code,l:`${l.code} – ordered ${l.qty}`,v:l.qty,t:"number"})),o=>{
+      p.lines.forEach(l=>{const m=byCode(l.code),q=Math.max(0,Number(o[l.code])||0);if(m){if(q)postMove(m,"po",q,p.id+" · "+p.supplier);m.onOrder=Math.max(0,m.onOrder-l.qty)}l.recv=q});
+      p.status="Received";p.recvDate=today();log("Storekeeper","PO received",id+" · "+p.lines.map(l=>`${l.code} ${l.recv}/${l.qty}`).join(", "));renderAll();toast("Goods received");
+    },"Post receipt");return}
+  renderAll()};
+
+// settings
+document.getElementById("saveSet").onclick=()=>{if(!need("settings"))return;SETF.forEach(([k])=>{const v=document.getElementById("s_"+k).value;S.settings[k]=k==="currency"?v:Math.max(0,Number(v)||0)});
+  ["slA","slB","slC"].forEach(k=>S.settings[k]=Math.min(99.9,Math.max(50,S.settings[k])));log("Manager","Policy updated",JSON.stringify(S.settings));renderSet();renderAll();toast("Policy saved – see Parameter Review")};
+
+// data
+let _dlNs;
+async function dl(name,data,type="application/octet-stream"){
+  // Inside the claude.ai artifact viewer files go through the `downloads` capability; as a local file a normal browser download is used.
+  let ns=null;
+  if(window.claude&&typeof window.claude.use==="function"){if(_dlNs===undefined){try{_dlNs=await window.claude.use("downloads")}catch(e){_dlNs=null}}ns=_dlNs}
+  if(ns){try{await ns.save({filename:name,data:data instanceof ArrayBuffer?data.slice(0):data});toast("Saved "+name)}
+    catch(e){const c=e&&e.code;if(c==="declined")return;toast(c==="rate_limited"?"A download prompt is already open":"Download is not available in this view")}return}
+  const blob=data instanceof Blob?data:new Blob([data],{type});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+const COLS=MCOLS;
+const csvCell=v=>{v=String(v??"");return/[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v};
+document.getElementById("expCsv").onclick=()=>dl("nacita_materials_"+today()+".csv",[COLS.join(",")].concat(S.materials.map(m=>COLS.map(c=>csvCell(c==="hist"?m.hist.join(";"):c==="sectors"?(m.sectors||[]).join(";"):m[c])).join(","))).join("\n"),"text/csv");
+document.getElementById("logCsv").onclick=()=>dl("nacita_audit_log_"+today()+".csv",["time,user,action,detail"].concat(S.log.map(l=>[l.ts,l.user,l.action,l.detail].map(csvCell).join(","))).join("\n"),"text/csv");
+function parseCSV(t,dl=","){const rows=[];let r=[],c="",q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch==='"'&&t[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}else if(ch==='"'&&c==="")q=true;else if(ch===dl){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&t[i+1]==="\n")i++;r.push(c);rows.push(r);r=[];c=""}else c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows.filter(x=>x.some(y=>y.trim()))}
+document.getElementById("impCsv").onclick=massUpload;
+document.getElementById("tplXlsx").onclick=dlTemplate;
+document.getElementById("expXlsx").onclick=dlCurrent;
+document.getElementById("expJson").onclick=()=>dl("nacita_material_backup_"+today()+".json",JSON.stringify(S,null,1),"application/json");
+document.getElementById("impJson").onchange=async e=>{const f=e.target.files[0];if(!f||!need("restore"))return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.materials))throw 0;const keepMeta=S.meta;S=d;S.meta=keepMeta;S.settings=Object.assign(defaults(),S.settings);log("Manager","Backup restored",f.name);renderSet();renderAll();toast("Backup restored")}catch(x){toast("Invalid backup file")}e.target.value=""};
+document.getElementById("reset").onclick=()=>{if(!need("restore"))return;if(confirm("Replace all data with the sample data set?")){const km=S.meta;S=sample();S.meta=km;renderSet();renderAll();toast("Sample data loaded")}};
+
+// global filters & theme
+const bg=document.getElementById("buGlobal");bg.innerHTML=`<option value="">All business units</option>`+Object.entries(BUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
+bg.onchange=renderAll;
+document.getElementById("themeBtn").onclick=()=>{const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark";try{localStorage.setItem(KEY+"_theme",r.dataset.theme)}catch(e){}};
+try{const t=localStorage.getItem(KEY+"_theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+
+document.getElementById("pubBtn").onclick=publish;document.getElementById("pubBtn2").onclick=publish;
+document.getElementById("ghBtn").onclick=ghDialog;
+document.getElementById("reloadBtn").onclick=()=>reloadPublished(false);
+document.getElementById("discardBtn").onclick=()=>{if(!dirty)return toast("No unpublished changes");reloadPublished(false)};
+boot();
+</script>
+</body>
+</html>
